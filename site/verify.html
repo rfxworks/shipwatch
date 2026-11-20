@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101319">
+  <meta name="description" content="Check that the Shipwatch site and observer you are using were built from the public source, and see the official token status.">
+  <meta property="og:title" content="Verify Shipwatch">
+  <meta property="og:description" content="The site, the observer and the token status, checkable against the public repository.">
+  <meta property="og:url" content="https://shipwatch.bwltd.kr/verify.html">
+  <meta property="og:image" content="https://shipwatch.bwltd.kr/social.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>Verify Shipwatch</title>
+  <link rel="icon" href="./favicon.png">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./verify.js"></script>
+</head>
+<body>
+  <header class="header wrap">
+    <a href="./" class="brand"><span class="brand-mark" aria-hidden="true"></span>shipwatch<span class="brand-period">.</span></a>
+    <nav aria-label="Main"><a href="./">Feed</a><a href="#token">Token</a><a id="repo-nav" href="#source">Source ↗</a></nav>
+  </header>
+  <main class="wrap verify">
+    <section class="verify-hero">
+      <p class="eyebrow">DON'T TRUST. CHECK.</p>
+      <h1>Verify what<br>we <span>ship.</span></h1>
+      <p class="verify-lede">Everything Shipwatch serves is built from a public repository. This page names the exact commit, checks the files in your browser, and shows the only official token status.</p>
+    </section>
+
+    <section class="verify-block" id="token" aria-labelledby="token-heading">
+      <div class="verify-label"><p class="eyebrow">01 · TOKEN</p><h2 id="token-heading">Official token status</h2></div>
+      <div class="verify-body">
+        <div id="token-status" class="token-card" role="status">Loading token status…</div>
+        <p class="verify-note">The mint address is published here and in <code>TOKEN.md</code> in the repository at the same time. An address seen anywhere else first is not ours.</p>
+      </div>
+    </section>
+
+    <section class="verify-block" id="source" aria-labelledby="source-heading">
+      <div class="verify-label"><p class="eyebrow">02 · SOURCE</p><h2 id="source-heading">What this site was built from</h2></div>
+      <div class="verify-body">
+        <dl id="build-facts" class="facts"><div><dt>Build</dt><dd>Loading…</dd></div></dl>
+      </div>
+    </section>
+
+    <section class="verify-block" id="site-files" aria-labelledby="files-heading">
+      <div class="verify-label"><p class="eyebrow">03 · FILES</p><h2 id="files-heading">Site files, hashed in your browser</h2></div>
+      <div class="verify-body">
+        <p id="files-summary" class="verify-result" role="status">Fetching each file and comparing its SHA-256 with the build manifest…</p>
+        <table class="hash-table"><thead><tr><th scope="col">File</th><th scope="col">SHA-256 in manifest</th><th scope="col">Served now</th></tr></thead><tbody id="files"></tbody></table>
+        <p class="verify-note">Each file is a byte-for-byte copy of the same path under <code>site/</code> in the repository, so you can repeat this check with <code>curl</code> and <code>git</code> instead of trusting this page.</p>
+      </div>
+    </section>
+
+    <section class="verify-block" aria-labelledby="observer-heading">
+      <div class="verify-label"><p class="eyebrow">04 · OBSERVER</p><h2 id="observer-heading">The code that watches websites</h2></div>
+      <div class="verify-body">
+        <p id="observer-summary" class="verify-result" role="status">Asking the observer which code it is running…</p>
+        <dl id="observer-facts" class="facts"></dl>
+        <p class="verify-note">The observer runs on our server and reports the hash of its own source. That is a statement by the server, not proof. It reads only public inputs, so you can run the published file yourself and compare its results with the feed.</p>
+      </div>
+    </section>
+
+    <section class="verify-block" aria-labelledby="diy-heading">
+      <div class="verify-label"><p class="eyebrow">05 · DO IT YOURSELF</p><h2 id="diy-heading">Five minutes, no trust required</h2></div>
+      <div class="verify-body">
+        <pre id="commands" class="commands" tabindex="0">Loading commands…</pre>
+        <p class="verify-note">Releases carry a signed build attestation from GitHub. The last command checks it. <a id="verify-doc" href="#source">Full guide in VERIFY.md ↗</a></p>
+      </div>
+    </section>
+  </main>
+  <footer class="wrap footer"><span>Shipwatch · Built by Reflex Works</span><a href="./">Back to the feed ↗</a><span>Hashes on this page are computed by your browser with the Web Crypto API.</span></footer>
+  <noscript>Enable JavaScript to run the in-browser checks, or follow VERIFY.md in the repository.</noscript>
+</body>
+</html>

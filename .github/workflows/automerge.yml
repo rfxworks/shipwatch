@@ -1,0 +1,38 @@
+# Merge automated maintenance pull requests once every check has passed.
+#
+# Only branches inside this repository named claude/* qualify, so a pull
+# request from a fork can never merge itself. A merge made by a workflow
+# does not start other workflows, so the release is started explicitly.
+name: Merge maintenance changes
+
+on:
+  workflow_run:
+    workflows: [Check]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      startsWith(github.event.workflow_run.head_branch, 'claude/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: ${{ github.event.workflow_run.head_branch }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Merge the pull request that was checked
+        run: |
+          number=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number,headRefOid \
+            --jq ".[] | select(.headRefOid == \"$HEAD_SHA\") | .number" | head -1)
+          if [ -z "$number" ]; then echo "No open pull request at the checked commit."; exit 0; fi
+          gh pr merge "$number" --repo "$GITHUB_REPOSITORY" --squash --delete-branch --match-head-commit "$HEAD_SHA"
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main

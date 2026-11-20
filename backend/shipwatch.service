@@ -1,0 +1,25 @@
+[Unit]
+Description=Shipwatch website observations and API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=shipwatch
+Group=shipwatch
+ExecStart=/usr/bin/python3 /opt/shipwatch/backend/shipwatch.py
+Environment=PYTHONDONTWRITEBYTECODE=1
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/shipwatch
+MemoryMax=90M
+CPUQuota=20%
+TasksMax=24
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

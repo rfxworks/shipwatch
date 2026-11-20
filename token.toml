@@ -1,0 +1,4 @@
+# The single source of truth for Shipwatch's token status.
+# The site's verify page and TOKEN.md are generated from this file.
+# It changes exactly once: in the commit that records the launch.
+status = "not_launched"

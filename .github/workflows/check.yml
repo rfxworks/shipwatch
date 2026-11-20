@@ -1,0 +1,56 @@
+# Runs on every pull request. Nothing here can deploy or publish:
+# it holds no secrets and only reads the repository.
+name: Check
+
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        # 3.9 is what the server runs; 3.12 is what the build tools use.
+        python: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m unittest discover -s backend -p 'test_*.py'
+
+  site:
+    name: Build and browser checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Posts and build inputs
+        run: |
+          python tools/posts.py
+          python tools/build.py --check
+      - name: Frontend syntax
+        run: node --check site/app.js && node --check site/verify.js
+      - name: Install the browser and ffmpeg
+        run: |
+          python -m pip install --quiet playwright==1.65.2
+          python -m playwright install --with-deps chromium
+          sudo apt-get install -y -qq ffmpeg
+      - name: Build, rendering draft posts too (drafts are never publishable)
+        run: python tools/build.py --include-drafts
+      - name: Browser checks
+        run: python tools/browser_check.py
+      - uses: actions/upload-artifact@v7
+        with:
+          name: preview
+          path: dist
+          retention-days: 7

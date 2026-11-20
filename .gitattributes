@@ -1,0 +1,6 @@
+# Hashes on the verify page are computed over the exact bytes in this
+# repository, so every checkout must keep LF line endings.
+* text=auto eol=lf
+*.png binary
+*.mp4 binary
+*.woff2 binary

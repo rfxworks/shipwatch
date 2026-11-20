@@ -1,0 +1,15 @@
+[Unit]
+Description=Deploy Shipwatch observer releases from the owner's publishing origin
+After=network-online.target shipwatch.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/shipwatch/deployer.py
+UMask=0077
+ProtectSystem=strict
+ReadWritePaths=/opt/shipwatch/backend /var/lib/shipwatch-deployer /var/lib/reflex-factory
+ProtectHome=true
+PrivateTmp=true
+MemoryMax=48M
+TimeoutStartSec=90

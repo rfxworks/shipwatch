@@ -1,0 +1,22 @@
+{
+  "viewport": "phone",
+  "steps": [
+    {"goto": "/"},
+    {"wait_for": "text=/Feed checked/"},
+    {"caption": "Follow the website behind a Solana mint."},
+    {"wait": 3000},
+    {"click": "button[data-filter='changes']"},
+    {"scroll_to": ".feed"},
+    {"caption": "Every edit is recorded with a timestamp."},
+    {"wait": 3000},
+    {"click": ".event summary"},
+    {"caption": "Open the evidence: what was removed, what was added."},
+    {"wait": 4500},
+    {"click": "button[data-filter='novel']"},
+    {"caption": "Hide repeats to see first-time changes only."},
+    {"wait": 3500},
+    {"scroll_top": true},
+    {"caption": "shipwatch.bwltd.kr · open source, verifiable"},
+    {"wait": 3000}
+  ]
+}
