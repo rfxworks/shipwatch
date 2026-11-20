@@ -13,16 +13,17 @@ jobs:
   backend:
     name: Backend tests (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
+    # The official Python images, not the runner's own Python: GitHub's current
+    # runners no longer offer 3.9, and 3.9 is what the server runs.
+    container: python:${{ matrix.python }}-slim
     timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
         # 3.9 is what the server runs; 3.12 is what the build tools use.
         python: ["3.9", "3.12"]
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: ${{ matrix.python }}
       - run: python -m unittest discover -s backend -p 'test_*.py'
 
   site:
