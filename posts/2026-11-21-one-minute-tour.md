@@ -1,7 +1,7 @@
 +++
 id = "2026-11-21-one-minute-tour"
 date = 2026-11-21
-not_before = 2026-11-21T15:00:00Z
+not_before = 2026-11-21T05:21:00Z
 
 [[media]]
 kind = "video"
