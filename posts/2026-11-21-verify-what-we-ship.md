@@ -1,7 +1,6 @@
 +++
 id = "2026-11-21-verify-what-we-ship"
 date = 2026-11-21
-draft = true
 
 [[media]]
 kind = "card"
