@@ -49,6 +49,13 @@ def repeat_count(con, mint, added, removed):
     return count
 
 
+def asset_repeat_count(con, mint, fingerprint):
+    """How many earlier checks of this site showed exactly this set of script and stylesheet bytes."""
+    count = con.execute("SELECT count(*) FROM events WHERE mint=? AND kind='assets' AND after_hash=?", (mint, fingerprint)).fetchone()[0]
+    first = con.execute("SELECT before_hash FROM events WHERE mint=? AND kind='assets' ORDER BY id LIMIT 1", (mint,)).fetchone()
+    return count + (1 if first and first["before_hash"] == fingerprint else 0)
+
+
 @contextmanager
 def database():
     con = sqlite3.connect(STATE / "shipwatch.sqlite3", timeout=10)
@@ -105,6 +112,18 @@ def initialize():
                     seen[key] = prior + 1
         if "association_ambiguous" not in event_columns:
             con.execute("ALTER TABLE events ADD COLUMN association_ambiguous INTEGER NOT NULL DEFAULT 0")
+        if con.execute("PRAGMA user_version").fetchone()[0] < 1:
+            # One-time: count stored code changes that returned to a set of
+            # bytes already seen on the same site, as later checks now do.
+            seen = {}
+            for row in list(con.execute("SELECT id,mint,before_hash,after_hash FROM events WHERE kind='assets' ORDER BY id")):
+                counts = seen.setdefault(row["mint"], {})
+                if not counts and row["before_hash"]:
+                    counts[row["before_hash"]] = 1
+                prior = counts.get(row["after_hash"], 0)
+                con.execute("UPDATE events SET repeat_count=? WHERE id=?", (prior, row["id"]))
+                counts[row["after_hash"]] = prior + 1
+            con.execute("PRAGMA user_version=1")
         con.execute("""UPDATE events SET association_ambiguous=1
             WHERE kind='repository' AND mint IN (
                 SELECT mint FROM events WHERE kind='repository' AND detail_url IS NOT NULL
@@ -399,6 +418,7 @@ def scan_target(target):
             if kind == "assets":
                 before_hash = hashlib.sha256(json.dumps(old_hashes).encode()).hexdigest()
                 after_hash = hashlib.sha256(json.dumps(new_hashes).encode()).hexdigest()
+                repeats = asset_repeat_count(con, target["mint"], after_hash)
             con.execute("INSERT INTO events(mint,observed,previous_observation,kind,summary,added,removed,before_hash,after_hash,repeat_count) VALUES (?,?,?,?,?,?,?,?,?,?)",
                         (target["mint"], observed, target["checked"], kind, summary, json.dumps(added), json.dumps(removed),
                          before_hash, after_hash, repeats))
@@ -412,7 +432,9 @@ def scan_target(target):
         complete = all("sha256" in asset for asset in sample["assets"])
         con.execute("UPDATE targets SET checked=?,next_check=?,status='online',failures=0,error=NULL,fingerprint=?,text=?,title=?,assets=?,complete_assets=CASE WHEN ? THEN ? ELSE complete_assets END,release_info=? WHERE mint=?",
                     (observed, time.time() + INTERVAL, sample["fingerprint"], sample["text"], sample["title"], json.dumps(sample["assets"]), int(complete), json.dumps(sample["assets"]), json.dumps(release), target["mint"]))
-        con.execute("DELETE FROM events WHERE id NOT IN (SELECT id FROM events ORDER BY id DESC LIMIT 2000)")
+        # Recurring changes are trimmed separately so they cannot push out first-time observations.
+        con.execute("DELETE FROM events WHERE repeat_count=0 AND id NOT IN (SELECT id FROM events WHERE repeat_count=0 ORDER BY id DESC LIMIT 2000)")
+        con.execute("DELETE FROM events WHERE repeat_count>0 AND id NOT IN (SELECT id FROM events WHERE repeat_count>0 ORDER BY id DESC LIMIT 500)")
 
 
 def scan():
@@ -430,11 +452,14 @@ def scan():
 def feed():
     with database() as con:
         targets = [dict(row) for row in con.execute("SELECT mint,symbol,name,url,link_source,added,checked,status,title,error,assets,release_info FROM targets ORDER BY added DESC")]
-        events = [dict(row) for row in con.execute("SELECT e.*,t.symbol,t.name,t.url FROM events e JOIN targets t ON t.mint=e.mint ORDER BY e.observed DESC,e.id DESC LIMIT 80")]
+        # A change that keeps recurring on one site is listed once, as its most
+        # recent occurrence, so it cannot crowd first-time observations out.
+        events = [dict(row) for row in con.execute("""SELECT e.*,t.symbol,t.name,t.url FROM events e JOIN targets t ON t.mint=e.mint
+            WHERE e.repeat_count=0 OR e.id IN (SELECT max(id) FROM events WHERE repeat_count>0 GROUP BY mint,kind)
+            ORDER BY e.observed DESC,e.id DESC LIMIT 80""")]
         for target in targets:
             latest = con.execute("""SELECT id,observed,kind,summary FROM events
-                WHERE mint=? AND kind IN ('page','assets','release')
-                AND (kind!='page' OR repeat_count=0)
+                WHERE mint=? AND kind IN ('page','assets','release') AND repeat_count=0
                 ORDER BY observed DESC,id DESC LIMIT 1""", (target["mint"],)).fetchone()
             target["latest_signal"] = dict(latest) if latest else None
     for event in events:

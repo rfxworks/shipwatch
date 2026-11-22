@@ -50,7 +50,7 @@ function openLinkedEvidence() {
 }
 
 function recurrenceCount(event, index) {
-  if (event.kind !== "page") return 0;
+  if (event.kind !== "page") return Number(event.repeat_count) || 0;
   const signature = [...event.added, ...event.removed].filter(Boolean).sort().join("\n");
   const visibleFallback = signature && state.events.slice(index + 1).some(previous =>
     previous.kind === "page" && previous.mint === event.mint &&
@@ -77,7 +77,7 @@ function draw() {
     card.dataset.associationAmbiguous = String(Boolean(event.association_ambiguous));
     const top = create("div", "event-top");
     const kind = create("span", "event-kind", labels[event.kind]);
-    if (recurring) kind.append(create("span", "event-repeat", `RECURRING EDIT · ${repeats} PRIOR`));
+    if (recurring) kind.append(create("span", "event-repeat", `RECURRING · SEEN ${repeats} TIME${repeats === 1 ? "" : "S"} BEFORE`));
     if (event.association_ambiguous) kind.append(create("span", "event-association", "ATTRIBUTION PAUSED"));
     top.append(kind, create("time", "", age(event.observed)));
     const heading = create("h3");
@@ -87,7 +87,8 @@ function draw() {
     const evidence = create("div", "evidence");
     evidence.append(create("p", "evidence-id", "Evidence #" + event.id));
     evidence.append(create("p", "", "Observed " + stamp(event.observed)));
-    if (recurring) evidence.append(create("p", "recurring-note", `The same visible before/after excerpts appeared in ${repeats} earlier stored observation${repeats === 1 ? "" : "s"}. This may be rotating content; inspect the website before treating it as a new catalyst.`));
+    if (recurring && event.kind === "page") evidence.append(create("p", "recurring-note", `The same visible before/after excerpts appeared in ${repeats} earlier stored observation${repeats === 1 ? "" : "s"}. This may be rotating content; inspect the website before treating it as a new catalyst.`));
+    if (recurring && event.kind === "assets") evidence.append(create("p", "recurring-note", `This exact set of script and stylesheet bytes was already seen in ${repeats} earlier check${repeats === 1 ? "" : "s"} of this site. It is probably alternating between builds. Only the most recent recurrence is listed.`));
     if (event.association_ambiguous) evidence.append(create("p", "association-note", "Shipwatch observed multiple repository links for this watched website across stored checks, so this repository cannot be confidently attributed to the token project."));
     if (event.previous_observation) evidence.append(create("p", "", "Previous check " + stamp(event.previous_observation)));
     for (const text of event.removed) evidence.append(create("p", "removed", "− " + text));

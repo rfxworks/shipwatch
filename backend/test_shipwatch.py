@@ -153,6 +153,46 @@ class ObserverTests(unittest.TestCase):
         latest = shipwatch.feed()["targets"][0]["latest_signal"]
         self.assertEqual((latest["kind"], latest["id"]), ("page", first_edit["id"]))
 
+    def test_alternating_asset_sets_are_counted_and_listed_once(self):
+        self.add()
+        self.scan(self.sample(asset="a"))
+        self.scan(self.sample(asset="b"))
+        first_change = shipwatch.feed()["events"][0]
+        self.assertEqual((first_change["kind"], first_change["repeat_count"]), ("assets", 0))
+        # A site that alternates between two builds returns to bytes already seen.
+        for asset in "abab":
+            self.scan(self.sample(asset=asset))
+        with shipwatch.database() as con:
+            stored = [row["repeat_count"] for row in con.execute("SELECT repeat_count FROM events WHERE kind='assets' ORDER BY id")]
+        self.assertEqual(stored, [0, 1, 1, 2, 2])
+        feed = shipwatch.feed()
+        listed = [(entry["kind"], entry["repeat_count"]) for entry in feed["events"]]
+        self.assertEqual(listed, [("assets", 2), ("assets", 0), ("baseline", 0)])
+        self.assertEqual(feed["targets"][0]["latest_signal"]["id"], first_change["id"])
+
+    def test_stored_asset_changes_are_counted_once_on_upgrade(self):
+        self.add()
+        self.scan(self.sample(asset="a"))
+        for asset in "bab":
+            self.scan(self.sample(asset=asset))
+        with shipwatch.database() as con:
+            con.execute("UPDATE events SET repeat_count=0")
+            con.execute("PRAGMA user_version=0")
+        shipwatch.initialize()
+        with shipwatch.database() as con:
+            stored = [row["repeat_count"] for row in con.execute("SELECT repeat_count FROM events WHERE kind='assets' ORDER BY id")]
+            self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], 1)
+        self.assertEqual(stored, [0, 1, 1])
+
+    def test_recurring_changes_do_not_push_out_first_time_observations(self):
+        self.add()
+        self.scan(self.sample(asset="a"))
+        self.scan(self.sample("Version two", "a"))
+        for asset in "ba" * 45:
+            self.scan(self.sample("Version two", asset))
+        kinds = [entry["kind"] for entry in shipwatch.feed()["events"]]
+        self.assertEqual(kinds, ["assets", "assets", "page", "baseline"])
+
     def test_linked_repositories_skip_reserved_paths_and_duplicates(self):
         links = [
             "https://github.com/owner/project", "https://github.com/owner/project.git",

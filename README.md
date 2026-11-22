@@ -20,6 +20,7 @@ Paste a mint address. Shipwatch looks up the website listed for that token on DE
 | Linked release | The one GitHub repository linked from the page published a new release. |
 | Repository link | The linked repository changed. If a page links several, attribution is paused. |
 | Check failed / Back online | Two checks in a row failed, or the site answered again. |
+| Recurring | The same change was seen on this site before: rotating text, or scripts alternating between builds. The feed lists only its latest occurrence. |
 
 An edit is a reason to look closer. It does not show that a feature works, that a contract was deployed, or that anything is backed by funds.
 
