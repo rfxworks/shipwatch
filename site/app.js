@@ -224,6 +224,62 @@ window.addEventListener("hashchange", openLinkedEvidence);
 refresh();
 setInterval(refresh, 30000);
 
+// Token status. token.json is generated from token.toml in the repository.
+// Until a launch is recorded there, token-plan.json states what is planned
+// and names the one wallet that will create the token.
+async function drawToken() {
+  const panel = $("#token-panel");
+  const json = async path => {
+    const response = await fetch(path, {cache: "no-store", signal: AbortSignal.timeout(15000)});
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    return response.json();
+  };
+  try {
+    const token = await json("./token.json");
+    const lead = create("div", "token-lead");
+    const detail = create("div", "token-detail");
+    if (token.status === "launched") {
+      lead.append(create("p", "token-tag", "OFFICIAL TOKEN · " + String(token.launchpad || "").toUpperCase()),
+        create("p", "token-headline", "$" + token.symbol + " is live."));
+      const copy = create("button", "", "Copy mint");
+      copy.type = "button";
+      copy.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(token.mint); copy.textContent = "Copied"; } catch { copy.textContent = "Select and copy"; }
+      });
+      const actions = create("p", "token-links");
+      actions.append(copy, link("Coin page ↗", token.coin_url || "https://pump.fun/coin/" + token.mint));
+      const verify = create("a", "", "Check it is ours ↗");
+      verify.href = "./verify.html#token";
+      actions.append(verify);
+      detail.append(create("p", "token-mint", token.mint), actions,
+        create("p", "", "This is the only Shipwatch token. Check the full address, not just the first and last characters."));
+      panel.replaceChildren(lead, detail);
+      panel.dataset.state = "live";
+      return;
+    }
+    const plan = await json("./token-plan.json");
+    lead.append(create("p", "token-tag", "TOKEN · NOT LAUNCHED YET"),
+      create("p", "token-headline", "Launching " + plan.planned.replace(/ \d{4}.*$/, "") + "."),
+      create("p", "token-when", plan.planned + " · " + plan.launchpad));
+    const wallet = create("p", "token-mint");
+    wallet.append(link(plan.creator_wallet, "https://solscan.io/account/" + plan.creator_wallet));
+    const how = create("p", "token-links");
+    const verify = create("a", "", "How to check it is ours ↗");
+    verify.href = "./verify.html#token";
+    how.append(verify);
+    detail.append(create("p", "", "One wallet will create it, and we are naming that wallet before the launch. On the day, compare the creator shown on the coin page with this address:"),
+      wallet,
+      create("p", "", "No address exists yet. A token that uses this name before the launch is recorded in our repository is not ours."),
+      how);
+    panel.replaceChildren(lead, detail);
+    panel.dataset.state = "planned";
+  } catch {
+    panel.textContent = "Token status could not be loaded. Treat any address as unverified until the verify page shows it.";
+    panel.dataset.state = "unknown";
+  }
+}
+drawToken();
+
 // Name the exact source commit this page was built from. The verify page
 // explains how to check that claim without trusting this script.
 fetch("./build.json", {cache: "no-store"}).then(response => response.ok ? response.json() : null).then(build => {

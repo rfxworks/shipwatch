@@ -39,6 +39,19 @@ function mark(node, state, text) {
   node.textContent = text;
 }
 
+// Before a launch, name the planned day and the one wallet that will create
+// the token, so the creator on the coin page can be compared with it later.
+async function drawPlan(card) {
+  try {
+    const plan = JSON.parse(new TextDecoder().decode(await bytes("./token-plan.json")));
+    if (card.dataset.state !== "none") return;
+    const facts = create("dl", "facts");
+    fact(facts, "Planned launch", document.createTextNode(plan.planned + " · " + plan.launchpad));
+    fact(facts, "Creator wallet", link(plan.creator_wallet + " ↗", "https://solscan.io/account/" + plan.creator_wallet));
+    card.append(facts, create("p", "", "The token will be created by this wallet and no other. On launch day, compare the creator shown on the coin page with this address before anything else."));
+  } catch { /* the statement above stands on its own */ }
+}
+
 function drawToken(token, build) {
   const card = $("#token-status");
   card.replaceChildren();
@@ -47,6 +60,7 @@ function drawToken(token, build) {
     card.append(create("p", "token-tag", "NO TOKEN LAUNCHED"),
       create("p", "token-headline", "Shipwatch has not launched a token."),
       create("p", "", "Any token using this name, logo or website today was not created by us. When one launches, its mint address will appear in this box."));
+    drawPlan(card);
     return;
   }
   card.dataset.state = "live";

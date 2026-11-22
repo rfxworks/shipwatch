@@ -127,6 +127,15 @@ code{font:12px var(--mono);color:#d9dfe6;background:#1c232c;padding:1px 5px;bord
 .token-links{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;align-items:center}
 .token-links button{background:var(--orange);color:#20160f;border:0;border-radius:3px;padding:8px 14px;font-size:12px;font-weight:650}
 .token-card .facts{margin-block:14px}
+.token-strip{margin-top:26px;scroll-margin-top:20px}
+.token-strip .token-card{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.3fr);gap:32px;align-items:start}
+.token-strip .token-card[data-state=loading],.token-strip .token-card[data-state=unknown]{display:block}
+.token-strip .token-headline{margin-top:10px;font-size:28px}
+.token-when{font:11px var(--mono);color:var(--soft)}
+.token-mint a{text-decoration:none}
+.token-mint a:hover{text-decoration:underline}
+.token-detail p+p{margin-top:10px}
+@media(max-width:820px){.token-strip .token-card{grid-template-columns:1fr;gap:16px}.token-strip .token-headline{font-size:24px}.token-strip .token-mint{font-size:13px;padding:10px}}
 .facts{margin:0;border-top:1px solid var(--line)}
 .facts>div{display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
 .facts dt{color:var(--soft);font:11px/1.9 var(--mono);letter-spacing:.04em;text-transform:uppercase}

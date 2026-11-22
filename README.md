@@ -4,7 +4,7 @@
 
 - Site: <https://shipwatch.bwltd.kr>
 - Check this build yourself: <https://shipwatch.bwltd.kr/verify.html> or [VERIFY.md](VERIFY.md)
-- Token status: [TOKEN.md](TOKEN.md). **No token has been launched.**
+- Token status: [TOKEN.md](TOKEN.md), the only official statement. It names the wallet that creates the token.
 
 This repository is the complete source for everything Shipwatch serves. The site is built from it by GitHub Actions, and the server pulls its one Python file from that build.
 
@@ -33,6 +33,7 @@ An edit is a reason to look closer. It does not show that a feature works, that 
 | `posts/` | Every post Shipwatch publishes on X, as text files. See [posts/README.md](posts/README.md). |
 | `tools/` | Build, post checks, media rendering and browser checks. |
 | `token.toml`, `TOKEN.md` | The only official statement of the token's status. |
+| `site/token-plan.json` | The planned launch day and the creator wallet, published before the launch. |
 | `.github/workflows/` | Checks on pull requests; build, attestation and deploy on `main`. |
 
 ## How a change reaches the public

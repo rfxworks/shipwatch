@@ -27,8 +27,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import posts as post_queue  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-SITE_FILES = ["index.html", "verify.html", "style.css", "app.js", "verify.js", "geist.woff2", "geist-OFL.txt",
-              "favicon.png", "social.png", "demo.mp4"]
+SITE_FILES = ["index.html", "verify.html", "style.css", "app.js", "verify.js", "token-plan.json", "geist.woff2",
+              "geist-OFL.txt", "favicon.png", "social.png", "demo.mp4"]
+ADDRESS = r"[1-9A-HJ-NP-Za-km-z]{32,44}"
 
 
 def write(path: Path, text: str) -> None:
@@ -87,6 +88,16 @@ def load_inputs() -> dict:
     for name in SITE_FILES:
         if not (ROOT / "site" / name).is_file() or not (ROOT / "site" / name).stat().st_size:
             raise ValueError(f"site/{name} is missing or empty")
+    # The creator wallet is named before the launch. A launch from any other
+    # wallet must not be published as ours.
+    plan = json.loads((ROOT / "site" / "token-plan.json").read_text(encoding="utf-8"))
+    planned_wallet = plan.get("creator_wallet") or ""
+    if not re.fullmatch(ADDRESS, planned_wallet) or not plan.get("planned") or not plan.get("launchpad"):
+        raise ValueError("site/token-plan.json needs planned, launchpad and a creator_wallet that is a Solana address")
+    if status == "not_launched" and planned_wallet not in statement:
+        raise ValueError("TOKEN.md does not name the creator wallet published in site/token-plan.json")
+    if status == "launched" and token["creator_wallet"] != planned_wallet:
+        raise ValueError("token.toml names a creator wallet other than the one published before launch in site/token-plan.json")
     index = (ROOT / "site" / "index.html").read_text(encoding="utf-8")
     site = project["project"]["site"].rstrip("/")
     if site not in index:

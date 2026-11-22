@@ -18,7 +18,7 @@
 <body>
   <header class="header wrap">
     <a href="./" class="brand"><span class="brand-mark" aria-hidden="true"></span>shipwatch<span class="brand-period">.</span></a>
-    <nav aria-label="Main"><a href="#watchlist">Watchlist</a><a href="#coverage">Coverage</a><a href="./verify.html">Verify</a><a href="https://x.com/rfxworks">X ↗</a></nav>
+    <nav aria-label="Main"><a href="#watchlist">Watchlist</a><a href="#token">Token</a><a href="./verify.html">Verify</a><a href="https://x.com/rfxworks">X ↗</a></nav>
   </header>
   <main class="wrap">
     <section class="hero">
@@ -30,6 +30,9 @@
       <div class="watch-input"><input id="mint" name="mint" spellcheck="false" autocomplete="off" placeholder="Paste the full mint address" required minlength="32" maxlength="44"><button id="watch-submit" type="submit">Watch mint <span aria-hidden="true">↗</span></button></div>
       <div class="form-foot"><span>Project website from DEX Screener · Checks every 5 minutes</span><span id="form-status" role="status"></span></div>
     </form>
+    <section id="token" class="token-strip" aria-label="Shipwatch token">
+      <div id="token-panel" class="token-card" role="status" data-state="loading">Loading token status…</div>
+    </section>
     <div class="workspace">
       <section class="feed" aria-labelledby="feed-heading">
         <div class="section-top"><h2 id="feed-heading">The feed</h2><div class="connection"><span id="connection-dot" aria-hidden="true"></span><span id="connection">Connecting</span></div></div>

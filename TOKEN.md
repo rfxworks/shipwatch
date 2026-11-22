@@ -4,6 +4,16 @@
 
 Any token that uses the Shipwatch name, logo or website today was not created by us.
 
+## Planned launch
+
+**Wednesday 25 November 2026 (US Eastern time), on Pump.fun.**
+
+The token will be created by this wallet and no other:
+
+`FZWqyszTxQ2a3EsrAMkSvBac9A94erugDh7CTFR5D8zv`
+
+The address is published before the launch so that the creator shown on the coin page can be compared with it. The build refuses to publish a launch made from any other wallet. The same statement is shown on the [home page](https://shipwatch.bwltd.kr/#token) and the [verify page](https://shipwatch.bwltd.kr/verify.html#token).
+
 ## How a launch will be announced
 
 When a token launches, one commit to this repository will do all of the following at once:

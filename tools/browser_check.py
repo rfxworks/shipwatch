@@ -60,6 +60,8 @@ def run(base: str) -> list[str]:
         page.get_by_role("button", name="Watch mint").click()
         check("full Solana mint" in page.locator("#form-status").inner_text(), "invalid mint is not refused in the browser")
         page.locator("#build-link").filter(has_text="verify").wait_for(timeout=10_000)
+        page.locator("#token-panel[data-state=planned], #token-panel[data-state=live], #token-panel[data-state=unknown]").wait_for(timeout=20_000)
+        check(page.locator("#token-panel").get_attribute("data-state") in ("planned", "live"), "home page token panel did not render")
 
         page.goto(base + "/verify.html")
         page.locator("#files-summary.ok, #files-summary.bad").wait_for(timeout=30_000)
