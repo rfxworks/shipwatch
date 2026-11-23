@@ -137,10 +137,15 @@ function draw() {
     const shareEvidence = create("button", "", "Copy evidence link");
     shareEvidence.type = "button";
     shareEvidence.addEventListener("click", () => copyDeepLink(shareEvidence, "event-" + event.id));
+    const shareUrl = new URL(location.href);
+    shareUrl.hash = "event-" + event.id;
+    const shareText = `$${event.symbol} · ${labels[event.kind]} · observed by Shipwatch`;
+    const shareOnX = link("Share on X ↗", "https://x.com/intent/post?" + new URLSearchParams({text: shareText, url: shareUrl.href}));
+    shareOnX.className = "share-x";
     const shareProject = create("button", "", "Copy project link");
     shareProject.type = "button";
     shareProject.addEventListener("click", () => copyDeepLink(shareProject, "watch-" + event.mint));
-    actions.append(link("Open website ↗", event.url), link("Mint ↗", "https://solscan.io/token/" + event.mint), shareEvidence, shareProject);
+    actions.append(link("Open website ↗", event.url), link("Mint ↗", "https://solscan.io/token/" + event.mint), shareEvidence, shareOnX, shareProject);
     if (event.detail_url) actions.append(link(event.kind === "release" ? "Open release ↗" : "Repository ↗", event.detail_url));
     details.append(evidence);
     card.append(top, heading, create("p", "event-summary", event.summary), details, actions);
