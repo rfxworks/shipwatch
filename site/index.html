@@ -51,7 +51,9 @@
       <aside id="watchlist" class="watchlist">
         <div class="section-top"><h2>On watch</h2><span id="watch-count">—</span></div>
         <p class="watchlist-note">Every tracked project shares this feed.</p>
+        <input id="watch-search" class="watch-search" type="search" aria-label="Find a project on the watchlist" placeholder="Find by symbol or name" autocomplete="off" spellcheck="false">
         <ul id="targets"></ul>
+        <p id="search-empty" class="watchlist-note" role="status" hidden>No project matches.</p>
         <p id="target-status" class="empty">Loading watchlist…</p>
       </aside>
     </div>

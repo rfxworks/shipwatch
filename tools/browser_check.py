@@ -63,6 +63,17 @@ def run(base: str) -> list[str]:
         kinds = page.locator(".event").evaluate_all("nodes => nodes.map(node => node.dataset.kind)")
         check(all(kind in ("unavailable", "recovered") for kind in kinds), "availability filter shows other events")
         page.get_by_role("button", name="All checks", exact=True).click()
+        # Finding a project on the watchlist.
+        search = page.get_by_role("searchbox", name="Find a project on the watchlist")
+        total = page.locator(".target").count()
+        search.fill(page.locator(".target").first.evaluate("node => node.dataset.search.split('\\n')[0]"))
+        check(page.locator(".target").first.is_visible(), "searching a project's symbol hides that project")
+        check(page.locator("#search-empty").is_hidden(), "searching a listed symbol says no project matches")
+        search.fill("no such project ~~~~~~~~")
+        check(page.locator(".target:visible").count() == 0, "a search with no match still lists projects")
+        check(page.locator("#search-empty").is_visible(), "a search with no match does not say so")
+        search.fill("")
+        check(page.locator(".target:visible").count() == total, "clearing the search does not list every project again")
         # Narrowing the feed to one project, from the watchlist and from a project link.
         page.locator(".target-only").first.click()
         check(page.locator("#project-filter").is_visible(), "the feed does not say which project it is narrowed to")

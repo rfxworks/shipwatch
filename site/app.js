@@ -74,6 +74,17 @@ function recurrenceCount(event, index) {
   return Math.max(Number(event.repeat_count) || 0, visibleFallback);
 }
 
+// Narrow the listed projects to those whose symbol or name contains the search text.
+function searchTargets() {
+  const query = $("#watch-search").value.trim().toLowerCase();
+  let shown = 0;
+  for (const row of document.querySelectorAll("#targets .target")) {
+    row.hidden = Boolean(query) && !row.dataset.search.includes(query);
+    if (!row.hidden) shown += 1;
+  }
+  $("#search-empty").hidden = !query || shown > 0 || !state.targets.length;
+}
+
 function draw() {
   const events = $("#events");
   events.replaceChildren();
@@ -167,6 +178,7 @@ function draw() {
   for (const target of orderedTargets) {
     const row = create("li", "target");
     row.id = "watch-" + target.mint;
+    row.dataset.search = ("$" + target.symbol + "\n" + target.name).toLowerCase();
     const heading = create("div", "target-heading");
     const status = target.status === "online" ? "RESPONDED" : target.status === "pending" ? "PENDING" : "UNAVAILABLE";
     heading.append(create("h3", "", "$" + target.symbol + " · " + target.name), create("span", "target-status " + target.status, status));
@@ -212,6 +224,7 @@ function draw() {
     row.append(only);
     targets.append(row);
   }
+  searchTargets();
   openLinkedEvidence();
 }
 
@@ -278,6 +291,7 @@ for (const button of document.querySelectorAll("[data-filter]")) {
     draw();
   });
 }
+$("#watch-search").addEventListener("input", searchTargets);
 $("#refresh").addEventListener("click", refresh);
 window.addEventListener("hashchange", () => { openLinkedProject(); openLinkedEvidence(); });
 refresh();
