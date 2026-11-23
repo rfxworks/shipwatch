@@ -94,6 +94,10 @@ h2{font-size:24px;letter-spacing:-.055em;line-height:1.12;font-weight:550}
 .target-signal{display:block;margin-top:9px;color:var(--orange);font:10px var(--mono)}
 .target-error{font-size:11px;color:#e4a29d;margin-top:6px}
 .target:target{outline:1px solid var(--orange);outline-offset:7px}
+.target-only{display:block;margin-top:9px;padding:0;border:0;background:none;color:#bdc5d0;font-size:11px;text-decoration:underline;text-align:left}
+.target-only[aria-pressed=true]{color:var(--orange)}
+.project-filter{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;margin-top:12px;background:#191f27;border:1px solid var(--line);border-left:2px solid var(--orange);font-size:13px;overflow-wrap:anywhere}
+.project-filter button{flex-shrink:0;padding:0;border:0;background:none;color:#d5dce4;font-size:12px;text-decoration:underline}
 .coverage{display:grid;grid-template-columns:1fr 1.2fr;gap:70px;padding:45px 0;border-block:1px solid var(--line);margin-top:52px}
 .coverage h2{font-size:35px;letter-spacing:-.06em}
 .coverage>div>p:not(.eyebrow){color:var(--soft);font-size:13px}

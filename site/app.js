@@ -2,6 +2,7 @@ const API = "https://api.shipwatch.bwltd.kr";
 const $ = selector => document.querySelector(selector);
 let state = {targets: [], events: []};
 let filter = "all";
+let project = null;  // mint of the one project the feed is narrowed to, if any
 let busy = false;
 const labels = {baseline: "FIRST OBSERVATION", page: "PAGE EDIT", assets: "CODE / STYLE CHANGE", release: "LINKED RELEASE", repository: "REPOSITORY LINK", unavailable: "CHECK FAILED", recovered: "BACK ONLINE"};
 const create = (tag, className, text) => {
@@ -39,6 +40,15 @@ async function copyDeepLink(button, hash) {
   }
 }
 
+// A project link (#watch-<mint>) opens the feed narrowed to that project.
+function openLinkedProject() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  if (!id.startsWith("watch-") || !state.targets.some(target => target.mint === id.slice(6))) return;
+  if (project === id.slice(6)) return;
+  project = id.slice(6);
+  draw();
+}
+
 function openLinkedEvidence() {
   const id = decodeURIComponent(location.hash.slice(1));
   if (!id.startsWith("event-")) return;
@@ -63,9 +73,27 @@ function draw() {
   const events = $("#events");
   events.replaceChildren();
   const groups = {all: Object.keys(labels), changes: ["page", "assets", "release", "repository"], availability: ["unavailable", "recovered"], baseline: ["baseline"]};
-  const filtered = state.events.filter((event, index) => filter === "novel" ? recurrenceCount(event, index) === 0 : groups[filter].includes(event.kind));
+  const watched = project && state.targets.find(target => target.mint === project);
+  if (project && state.targets.length && !watched) project = null;
+  const filtered = state.events.filter((event, index) => (!project || event.mint === project) &&
+    (filter === "novel" ? recurrenceCount(event, index) === 0 : groups[filter].includes(event.kind)));
+  const narrowed = $("#project-filter");
+  narrowed.hidden = !watched;
+  narrowed.replaceChildren();
+  if (watched) {
+    const everything = create("button", "", "Show every project");
+    everything.type = "button";
+    everything.addEventListener("click", () => {
+      project = null;
+      if (location.hash.startsWith("#watch-")) history.replaceState(null, "", location.pathname + location.search);
+      draw();
+    });
+    narrowed.append(create("span", "", `Only $${watched.symbol} · ${watched.name}`), everything);
+  }
   $("#feed-status").hidden = filtered.length > 0;
-  $("#feed-status").textContent = state.targets.length ? "No observations in this filter yet. Later checks will appear here." : "The watchlist is empty. Add a mint to record its first website observation.";
+  $("#feed-status").textContent = !state.targets.length ? "The watchlist is empty. Add a mint to record its first website observation."
+    : watched ? "Nothing from this project in this view of the feed yet. Later checks will appear here."
+    : "No observations in this filter yet. Later checks will appear here.";
   for (const event of filtered) {
     const sourceIndex = state.events.indexOf(event);
     const repeats = recurrenceCount(event, sourceIndex);
@@ -133,6 +161,7 @@ function draw() {
       signal.addEventListener("click", event => {
         event.preventDefault();
         filter = "all";
+        if (project && project !== target.mint) project = null;
         for (const button of document.querySelectorAll("[data-filter]")) button.setAttribute("aria-pressed", String(button.dataset.filter === "all"));
         location.hash = "event-" + target.latest_signal.id;
         draw();
@@ -154,6 +183,15 @@ function draw() {
       }
     }
     if (target.error) row.append(create("p", "target-error", target.error));
+    const only = create("button", "target-only", project === target.mint ? "Showing only this project" : "Only this project in the feed");
+    only.type = "button";
+    only.setAttribute("aria-pressed", String(project === target.mint));
+    only.addEventListener("click", () => {
+      project = project === target.mint ? null : target.mint;
+      draw();
+      if (project) $("#feed-heading").scrollIntoView({block: "start"});
+    });
+    row.append(only);
     targets.append(row);
   }
   openLinkedEvidence();
@@ -168,8 +206,10 @@ async function refresh() {
     if (!response.ok) throw new Error("The observer is temporarily unavailable.");
     const value = await response.json();
     if (!Array.isArray(value.events) || !Array.isArray(value.targets)) throw new Error("The observer returned an invalid feed.");
+    const first = !state.targets.length;
     state = value;
     draw();
+    if (first) openLinkedProject();
     $("#connection").textContent = "Feed checked " + new Date().toLocaleTimeString(undefined, {hour: "2-digit", minute: "2-digit"});
     $("#connection-dot").className = "online";
   } catch {
@@ -221,7 +261,7 @@ for (const button of document.querySelectorAll("[data-filter]")) {
   });
 }
 $("#refresh").addEventListener("click", refresh);
-window.addEventListener("hashchange", openLinkedEvidence);
+window.addEventListener("hashchange", () => { openLinkedProject(); openLinkedEvidence(); });
 refresh();
 setInterval(refresh, 30000);
 
