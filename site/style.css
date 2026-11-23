@@ -46,6 +46,8 @@ h2{font-size:24px;letter-spacing:-.055em;line-height:1.12;font-weight:550}
 .filters{display:flex;gap:5px;border-bottom:1px solid var(--line);padding-bottom:12px;overflow:auto}
 .filters button{border:1px solid transparent;background:none;color:var(--soft);padding:5px 10px;border-radius:3px;font-size:12px;white-space:nowrap}
 .filters button[aria-pressed=true]{color:var(--ink);background:#232a33;border-color:#3c4551}
+.filter-count{margin-left:6px;font:10px var(--mono);color:var(--soft)}
+.filter-count:empty{display:none}
 .events{list-style:none;padding:0;margin:0}
 .event{border-bottom:1px solid var(--line);padding:20px 0}
 .event:target{outline:1px solid var(--orange);outline-offset:7px}

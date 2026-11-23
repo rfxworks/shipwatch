@@ -37,11 +37,11 @@
       <section class="feed" aria-labelledby="feed-heading">
         <div class="section-top"><h2 id="feed-heading">The feed</h2><div class="connection"><span id="connection-dot" aria-hidden="true"></span><span id="connection">Connecting</span></div></div>
         <div class="filters" role="group" aria-label="Filter observations">
-          <button type="button" data-filter="all" aria-pressed="true">All checks</button>
-          <button type="button" data-filter="changes" aria-pressed="false">Edits</button>
-          <button type="button" data-filter="novel" aria-pressed="false">Hide repeats</button>
-          <button type="button" data-filter="availability" aria-pressed="false">Availability</button>
-          <button type="button" data-filter="baseline" aria-pressed="false">First checks</button>
+          <button type="button" data-filter="all" aria-pressed="true" aria-label="All checks">All checks<span class="filter-count" aria-hidden="true"></span></button>
+          <button type="button" data-filter="changes" aria-pressed="false" aria-label="Edits">Edits<span class="filter-count" aria-hidden="true"></span></button>
+          <button type="button" data-filter="novel" aria-pressed="false" aria-label="Hide repeats">Hide repeats<span class="filter-count" aria-hidden="true"></span></button>
+          <button type="button" data-filter="availability" aria-pressed="false" aria-label="Availability">Availability<span class="filter-count" aria-hidden="true"></span></button>
+          <button type="button" data-filter="baseline" aria-pressed="false" aria-label="First checks">First checks<span class="filter-count" aria-hidden="true"></span></button>
         </div>
         <p id="project-filter" class="project-filter" hidden></p>
         <div id="feed-status" class="empty" role="status">Loading observations…</div>

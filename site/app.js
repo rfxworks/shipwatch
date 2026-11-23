@@ -80,8 +80,13 @@ function draw() {
   const groups = {all: Object.keys(labels), changes: ["page", "assets", "release", "repository"], availability: ["unavailable", "recovered"], baseline: ["baseline"]};
   const watched = project && state.targets.find(target => target.mint === project);
   if (project && state.targets.length && !watched) project = null;
-  const filtered = state.events.filter((event, index) => (!project || event.mint === project) &&
-    (filter === "novel" ? recurrenceCount(event, index) === 0 : groups[filter].includes(event.kind)));
+  const inView = (event, index, name) => (!project || event.mint === project) &&
+    (name === "novel" ? recurrenceCount(event, index) === 0 : groups[name].includes(event.kind));
+  const filtered = state.events.filter((event, index) => inView(event, index, filter));
+  for (const button of document.querySelectorAll("[data-filter]")) {
+    const count = button.querySelector(".filter-count");
+    if (count) count.textContent = String(state.events.filter((event, index) => inView(event, index, button.dataset.filter)).length);
+  }
   const narrowed = $("#project-filter");
   narrowed.hidden = !watched;
   narrowed.replaceChildren();

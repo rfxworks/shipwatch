@@ -55,7 +55,11 @@ def run(base: str) -> list[str]:
         check(shares.evaluate_all("nodes => nodes.every(node => node.href.startsWith('https://x.com/intent/post?') && node.target === '_blank' && node.rel === 'noopener noreferrer')"), "a Share on X link does not open X in a new tab")
         page.locator(".event summary").first.click()
         check(page.locator(".event details[open] .evidence").first.is_visible(), "evidence does not expand")
+        counted = "document.querySelectorAll('.event').length === Number(document.querySelector('[data-filter=%s] .filter-count').textContent)"
+        check(page.locator("[data-filter] .filter-count").evaluate_all("nodes => nodes.length === 5 && nodes.every(node => /^\\d+$/.test(node.textContent))"), "a feed filter shows no count")
+        check(page.evaluate(counted % "all"), "the All checks count does not match the feed")
         page.get_by_role("button", name="Availability", exact=True).click()
+        check(page.evaluate(counted % "availability"), "the Availability count does not match the feed")
         kinds = page.locator(".event").evaluate_all("nodes => nodes.map(node => node.dataset.kind)")
         check(all(kind in ("unavailable", "recovered") for kind in kinds), "availability filter shows other events")
         page.get_by_role("button", name="All checks", exact=True).click()
