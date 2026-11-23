@@ -3,6 +3,9 @@
     python tools/build.py              full build, renders post media with Playwright
     python tools/build.py --no-media   everything except rendered media (no browser needed)
     python tools/build.py --check      validate inputs only; writes nothing
+    python tools/build.py --simulate-launch --out DIR
+                                       build as the site will be once the token is live,
+                                       with stand-in token values; a check, never deployed
 
 What is deterministic: every file under site/ is copied byte for byte, and
 observer.py.txt is a byte copy of backend/shipwatch.py. A visitor can therefore
@@ -63,7 +66,7 @@ def source_identity() -> dict:
     return identity
 
 
-def load_inputs() -> dict:
+def load_inputs(simulate_launch: bool = False) -> dict:
     project = tomllib.loads((ROOT / "project.toml").read_text(encoding="utf-8"))
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
     if not re.fullmatch(r"\d+\.\d+\.\d+", version):
@@ -103,11 +106,19 @@ def load_inputs() -> dict:
     if site not in index:
         raise ValueError("site/index.html must reference the branded site URL in its share tags")
     posts = post_queue.load_all(ROOT / "posts")
+    if simulate_launch and status == "not_launched":
+        # Every build renders every page and post image again, so the site must
+        # also build on the day the token goes live. These values are stand-ins.
+        token = {"status": "launched", "launchpad": plan["launchpad"].lower(), "name": project["project"]["name"],
+                 "symbol": "SAMPLE", "mint": "SampLeMintForBuiLdChecks11111111111111111111",
+                 "creator_wallet": planned_wallet, "creation_signature": "5" * 88,
+                 "launched_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+                 "metadata_uri": "https://example.invalid/metadata.json", "simulated": True}
     return {"project": project, "version": version, "token": token, "posts": posts}
 
 
-def build(out: Path, render: bool, include_drafts: bool = False) -> dict:
-    inputs = load_inputs()
+def build(out: Path, render: bool, include_drafts: bool = False, simulate_launch: bool = False) -> dict:
+    inputs = load_inputs(simulate_launch)
     project, version = inputs["project"], inputs["version"]
     if out.exists():
         shutil.rmtree(out)
@@ -203,13 +214,18 @@ def main() -> int:
     parser.add_argument("--no-media", action="store_true", help="skip Playwright rendering of post media")
     parser.add_argument("--check", action="store_true", help="validate inputs and exit")
     parser.add_argument("--include-drafts", action="store_true", help="render draft posts too, for previewing; they stay unpublishable")
+    parser.add_argument("--simulate-launch", action="store_true",
+                        help="build with stand-in values for a launched token, to check the site on launch day; needs --out and is never deployed")
     args = parser.parse_args()
     try:
         if args.check:
             inputs = load_inputs()
             print(f"inputs valid: version {inputs['version']}, {len(inputs['posts'])} post(s), token {inputs['token']['status']}")
             return 0
-        manifest = build(args.out.resolve(), render=not args.no_media, include_drafts=args.include_drafts)
+        if args.simulate_launch and args.out.resolve() == (ROOT / "dist").resolve():
+            raise ValueError("--simulate-launch needs its own --out folder, so it can never be deployed by mistake")
+        manifest = build(args.out.resolve(), render=not args.no_media, include_drafts=args.include_drafts,
+                         simulate_launch=args.simulate_launch)
     except (ValueError, OSError, KeyError, tomllib.TOMLDecodeError) as exc:
         print("build failed: " + str(exc), file=sys.stderr)
         return 1

@@ -12,3 +12,4 @@ AGENTS.md
 .claude/
 *.local.md
 notes/
+dist-launched/

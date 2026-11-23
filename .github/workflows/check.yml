@@ -50,6 +50,12 @@ jobs:
         run: python tools/build.py --include-drafts
       - name: Browser checks
         run: python tools/browser_check.py
+      # Every build renders every page and post image again, so a change made
+      # today must not break the build on the day the token goes live.
+      - name: The same, as the site will be once the token is live
+        run: |
+          python tools/build.py --simulate-launch --out dist-launched
+          python tools/browser_check.py --dir dist-launched
       - uses: actions/upload-artifact@v7
         with:
           name: preview
