@@ -12,6 +12,11 @@ const create = (tag, className, text) => {
   return node;
 };
 const stamp = value => value ? new Date(value).toLocaleString(undefined, {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"}) : "Waiting for first check";
+const utc = value => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 16).replace("T", " ") + " UTC";
+};
+const exact = value => value ? stamp(value) + (utc(value) ? " · " + utc(value) : "") : stamp(value);
 const age = value => {
   const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
   if (seconds < 60) return "just now";
@@ -107,18 +112,21 @@ function draw() {
     const kind = create("span", "event-kind", labels[event.kind]);
     if (recurring) kind.append(create("span", "event-repeat", `RECURRING · SEEN ${repeats} TIME${repeats === 1 ? "" : "S"} BEFORE`));
     if (event.association_ambiguous) kind.append(create("span", "event-association", "ATTRIBUTION PAUSED"));
-    top.append(kind, create("time", "", age(event.observed)));
+    const observed = create("time", "", age(event.observed));
+    observed.dateTime = event.observed;
+    if (utc(event.observed)) observed.title = utc(event.observed);
+    top.append(kind, observed);
     const heading = create("h3");
     heading.append(create("strong", "", "$" + event.symbol), document.createTextNode(event.name));
     const details = create("details");
     details.append(create("summary", "", "Inspect evidence"));
     const evidence = create("div", "evidence");
     evidence.append(create("p", "evidence-id", "Evidence #" + event.id));
-    evidence.append(create("p", "", "Observed " + stamp(event.observed)));
+    evidence.append(create("p", "", "Observed " + exact(event.observed)));
     if (recurring && event.kind === "page") evidence.append(create("p", "recurring-note", `The same visible before/after excerpts appeared in ${repeats} earlier stored observation${repeats === 1 ? "" : "s"}. This may be rotating content; inspect the website before treating it as a new catalyst.`));
     if (recurring && event.kind === "assets") evidence.append(create("p", "recurring-note", `This exact set of script and stylesheet bytes was already seen in ${repeats} earlier check${repeats === 1 ? "" : "s"} of this site. It is probably alternating between builds. Only the most recent recurrence is listed.`));
     if (event.association_ambiguous) evidence.append(create("p", "association-note", "Shipwatch observed multiple repository links for this watched website across stored checks, so this repository cannot be confidently attributed to the token project."));
-    if (event.previous_observation) evidence.append(create("p", "", "Previous check " + stamp(event.previous_observation)));
+    if (event.previous_observation) evidence.append(create("p", "", "Previous check " + exact(event.previous_observation)));
     for (const text of event.removed) evidence.append(create("p", "removed", "− " + text));
     for (const text of event.added) evidence.append(create("p", "added", "+ " + text));
     if (event.kind === "assets") evidence.append(create("p", "", "The fetched script or stylesheet bytes differ from the previous check. Inspect the product to establish what changed."));

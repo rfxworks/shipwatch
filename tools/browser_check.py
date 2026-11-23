@@ -49,6 +49,7 @@ def run(base: str) -> list[str]:
         page.set_viewport_size({"width": 1440, "height": 900})
         check(page.locator(".target").count() >= 1, "watchlist shows no projects")
         check(page.locator(".event").count() >= 1, "feed shows no observations")
+        check(page.locator(".event").count() == page.locator(".event time[datetime]").count(), "an observation has no exact time")
         page.locator(".event summary").first.click()
         check(page.locator(".event details[open] .evidence").first.is_visible(), "evidence does not expand")
         page.get_by_role("button", name="Availability", exact=True).click()
