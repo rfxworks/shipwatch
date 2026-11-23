@@ -63,6 +63,7 @@ def run(base: str) -> list[str]:
         kinds = page.locator(".event").evaluate_all("nodes => nodes.map(node => node.dataset.kind)")
         check(all(kind in ("unavailable", "recovered") for kind in kinds), "availability filter shows other events")
         page.get_by_role("button", name="All checks", exact=True).click()
+        check(page.locator(".target").count() == page.locator(".target > .target-signal, .target > .target-unchanged").count(), "a watched project shows neither its latest change nor that none was seen")
         # Finding a project on the watchlist.
         search = page.get_by_role("searchbox", name="Find a project on the watchlist")
         total = page.locator(".target").count()

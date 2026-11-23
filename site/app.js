@@ -197,6 +197,10 @@ function draw() {
         draw();
       });
       row.append(signal);
+    } else {
+      const since = new Date(target.added);
+      const date = Number.isNaN(since.getTime()) ? "" : " · " + since.toLocaleDateString(undefined, {year: "numeric", month: "short", day: "numeric"});
+      row.append(create("p", "target-unchanged", (target.checked ? "No change seen since first check" : "No check completed yet · watched since") + date));
     }
     if (target.assets_seen) row.append(create("p", "target-check", `${target.assets_read}/${target.assets_seen} linked assets observed`));
     if (target.release_info) {
