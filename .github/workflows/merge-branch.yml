@@ -1,0 +1,53 @@
+# Maintenance branches merge themselves once every check has passed.
+#
+# Only branches pushed to this repository and named claude/* qualify; a fork
+# cannot push here. The branch must already contain the current main, so the
+# commit that was checked is exactly the commit that lands. A push made by a
+# workflow does not start other workflows, so the release is started
+# explicitly. This workflow's token cannot change workflow files.
+name: Merge checked branch
+
+on:
+  push:
+    branches: ["claude/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merge-branch
+  cancel-in-progress: false
+
+jobs:
+  check:
+    uses: ./.github/workflows/check.yml
+
+  merge:
+    name: Move main to the checked commit
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Fast-forward main
+        run: |
+          git fetch --quiet origin main "$BRANCH"
+          if [ "$(git rev-parse "origin/$BRANCH")" != "$GITHUB_SHA" ]; then
+            echo "The branch moved after this commit was checked; its newer run decides."
+            exit 0
+          fi
+          if ! git merge-base --is-ancestor origin/main "$GITHUB_SHA"; then
+            echo "::error::main has moved since this branch was made. Rebase the branch onto main and push it again."
+            exit 1
+          fi
+          git push origin "$GITHUB_SHA:refs/heads/main"
+          git push origin --delete "$BRANCH"
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main
