@@ -64,6 +64,7 @@ def run(base: str) -> list[str]:
         check(all(kind in ("unavailable", "recovered") for kind in kinds), "availability filter shows other events")
         page.get_by_role("button", name="All checks", exact=True).click()
         check(page.locator(".target").count() == page.locator(".target > .target-signal, .target > .target-unchanged").count(), "a watched project shows neither its latest change nor that none was seen")
+        check(page.locator(".target").evaluate_all("rows => rows.every(row => !row.querySelector('.target-status.unavailable') || (row.querySelector(':scope > .target-reason') || {}).textContent)"), "a project that could not be checked does not say why in plain words")
         # Finding a project on the watchlist.
         search = page.get_by_role("searchbox", name="Find a project on the watchlist")
         total = page.locator(".target").count()

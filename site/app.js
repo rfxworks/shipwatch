@@ -74,6 +74,17 @@ function recurrenceCount(event, index) {
   return Math.max(Number(event.repeat_count) || 0, visibleFallback);
 }
 
+// A plain sentence for a failed check, chosen from the observer's raw error text.
+function plainError(error) {
+  const text = String(error || "");
+  const has = (...parts) => parts.some(part => text.includes(part));
+  if (has("timed out")) return "The site did not answer in time.";
+  if (has("Name or service not known", "getaddrinfo")) return "The domain did not resolve.";
+  if (has("HTTP 4", "HTTP 5")) return "The site answered with an error.";
+  if (has("certificate", "SSL")) return "The site's security certificate was not accepted.";
+  return "The site could not be loaded.";
+}
+
 // Narrow the listed projects to those whose symbol or name contains the search text.
 function searchTargets() {
   const query = $("#watch-search").value.trim().toLowerCase();
@@ -216,6 +227,7 @@ function draw() {
         row.append(create("p", "target-check", "Release lookup incomplete"));
       }
     }
+    if (target.status === "unavailable") row.append(create("p", "target-reason", plainError(target.error)));
     if (target.error) row.append(create("p", "target-error", target.error));
     const only = create("button", "target-only", project === target.mint ? "Showing only this project" : "Only this project in the feed");
     only.type = "button";
