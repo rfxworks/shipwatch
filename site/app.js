@@ -14,6 +14,13 @@ const MORE_EVENTS = 12;
 const FIRST_TARGETS = narrow.matches ? 4 : 8;
 let shownEvents = FIRST_EVENTS;
 let allTargets = false;
+// How the watchlist is ordered. The choice is kept in this browser if storage allows it.
+const SORTS = ["latest", "az", "offline"];
+let sortOrder = "latest";
+try {
+  const stored = localStorage.getItem("shipwatch-watchlist-sort");
+  if (SORTS.includes(stored)) sortOrder = stored;
+} catch {}
 const labels = {baseline: "FIRST OBSERVATION", page: "PAGE EDIT", assets: "CODE / STYLE CHANGE", release: "LINKED RELEASE", repository: "REPOSITORY LINK", unavailable: "CHECK FAILED", recovered: "BACK ONLINE"};
 const create = (tag, className, text) => {
   const node = document.createElement(tag);
@@ -214,9 +221,17 @@ function draw() {
   $("#watch-count").textContent = state.targets.length + " of 40";
   $("#target-status").hidden = state.targets.length > 0;
   $("#target-status").textContent = "Add a mint to start watching.";
-  const orderedTargets = [...state.targets].sort((left, right) =>
-    new Date(right.latest_signal?.observed || 0) - new Date(left.latest_signal?.observed || 0)
-  );
+  const latest = target => new Date(target.latest_signal?.observed || 0).getTime() || 0;
+  const byLatest = (left, right) => latest(right) - latest(left);
+  const offline = target => target.status === "unavailable" ? 0 : 1;
+  const orders = {
+    latest: byLatest,
+    az: (left, right) => String(left.symbol).localeCompare(String(right.symbol), undefined, {sensitivity: "base"}) ||
+      String(left.name).localeCompare(String(right.name), undefined, {sensitivity: "base"}),
+    offline: (left, right) => offline(left) - offline(right) || byLatest(left, right),
+  };
+  const orderedTargets = [...state.targets].sort(orders[sortOrder] || byLatest);
+  for (const button of document.querySelectorAll("[data-sort]")) button.setAttribute("aria-pressed", String(button.dataset.sort === sortOrder));
   const now = Date.now();
   setStat("projects", state.targets.length);
   setStat("changed", state.targets.filter(target => target.latest_signal && now - new Date(target.latest_signal.observed).getTime() <= 86400000).length);
@@ -354,6 +369,13 @@ for (const button of document.querySelectorAll("[data-filter]")) {
     filter = button.dataset.filter;
     shownEvents = FIRST_EVENTS;
     for (const other of document.querySelectorAll("[data-filter]")) other.setAttribute("aria-pressed", String(other === button));
+    draw();
+  });
+}
+for (const button of document.querySelectorAll("[data-sort]")) {
+  button.addEventListener("click", () => {
+    sortOrder = button.dataset.sort;
+    try { localStorage.setItem("shipwatch-watchlist-sort", sortOrder); } catch {}
     draw();
   });
 }

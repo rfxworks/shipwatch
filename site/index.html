@@ -105,6 +105,11 @@
       </div>
       <div class="block-body">
         <aside id="watchlist" class="watchlist">
+          <div id="watchlist-sort" class="filters watchlist-sort" role="group" aria-label="Sort the watchlist">
+            <button type="button" data-sort="latest" aria-pressed="true">Latest change</button>
+            <button type="button" data-sort="az" aria-pressed="false">A-Z</button>
+            <button type="button" data-sort="offline" aria-pressed="false">Offline first</button>
+          </div>
           <input id="watch-search" class="watch-search" type="search" aria-label="Find a project on the watchlist" placeholder="Find by symbol or name" autocomplete="off" spellcheck="false">
           <ul id="targets"></ul>
           <p id="search-empty" class="watchlist-note" role="status" hidden>No project matches.</p>
