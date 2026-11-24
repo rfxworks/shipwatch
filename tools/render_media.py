@@ -207,6 +207,8 @@ class Renderer:
             page = self._open(context, path, wait_for)
             target = page.locator(selector).first if selector else page
             if selector:
+                # One element is being shown: keep the page's sticky header and progress line out of the picture.
+                page.add_style_tag(content=".header{position:static!important}.progress{display:none!important}")
                 target.scroll_into_view_if_needed()
             if highlight:
                 # Optional: when the element is not on the page today, the capture is simply left unmarked.
