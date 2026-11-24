@@ -2,8 +2,8 @@
 
 Five kinds are rendered here (a sixth, "file", is copied by build.py):
 
-  card        a 1600x900 branded card: headline, optional kicker, and an
-              optional live capture of the product inset on the right
+  card        a branded card: headline, optional kicker, and an optional
+              live capture of the product inset beside or below it
   screenshot  a capture of a page or one element of the built site
   signal      a number-first card: one figure, what it counts, an optional
               bar series, an optional ticker chip; all taken from the post file
@@ -11,6 +11,9 @@ Five kinds are rendered here (a sixth, "file", is copied by build.py):
               element marked and a one-line caption
   video       a short scripted screen recording (tools/video/<name>.json),
               encoded as H.264 MP4
+
+A post's only image is 1600x900. Images that share a post are 1200x1200
+with wide margins, because X crops every image of a multi-image post.
 
 Captures come from the site as built in dist/, served locally, talking to the
 live API. Nothing here is mocked: if the product shows it, the media shows it.
@@ -109,6 +112,43 @@ EVIDENCE = """<!doctype html><html><head><meta charset="utf-8"><style>__BASE__
 <div class="window"><img src="__SHOT__"></div><div class="shade"></div><div class="tag">LIVE CAPTURE &middot; __SITE__</div>
 <div class="bar"><div class="brand"><span class="mark"></span>__NAME__<i>.</i></div><p class="caption">__CAPTION__</p>__CHIP__</div>
 </body></html>"""
+
+# X shows a single image whole, but crops every image of a multi-image post:
+# to roughly 6:5 in the web carousel and to 7:8 side by side on phones. An
+# image that shares a post is therefore drawn square, with everything that
+# matters at least 120px from each edge, so either crop only trims margin.
+SQUARE = (1200, 1200)
+SQUARE_CARD = """
+body{width:1200px;height:1200px}
+.frame{padding:124px}
+.copy{max-width:none}
+h1{font-size:__SQ_SIZE__}
+.foot{max-width:none}
+.bars{right:124px;top:124px;bottom:auto;width:150px;height:107px}
+"""
+SQUARE_CARD_SHOT = """
+.frame{justify-content:flex-start;gap:64px}
+.foot{display:none}
+.shot{left:124px;right:124px;top:auto;bottom:-30px;width:auto;height:500px;padding:26px 30px 0;border-radius:18px 18px 0 0}
+"""
+SQUARE_SIGNAL = """
+body{width:1200px;height:1200px}
+.frame{padding:124px 124px 120px}
+.mid{flex-direction:column;align-items:flex-start;gap:30px}
+.num{font-size:__SQ_SIZE__}
+.label{font-size:76px}
+.detail{font-size:29px}
+.bars{height:180px}
+.chip{font-size:32px;padding:10px 22px}
+"""
+SQUARE_EVIDENCE = """
+body{width:1200px;height:1200px}
+.window{left:120px;right:120px;top:156px;bottom:372px;padding:28px 32px 0}
+.shade{display:none}
+.tag{right:148px;top:136px}
+.bar{left:124px;right:124px;bottom:124px;flex-wrap:wrap;gap:20px 26px}
+.caption{flex:1 0 100%;order:-1;font-size:52px}
+"""
 
 # Draw attention to one element before a capture, the way a marker pen would.
 HIGHLIGHT_JS = """([selector, colour]) => {
@@ -234,24 +274,26 @@ class Renderer:
         if kind == "screenshot":
             raw = self._capture(item["path"], item.get("viewport", "desktop"), item.get("selector"), item.get("wait_for"))
             return self._save(raw, target_dir, index)
+        # An image that shares its post with others is drawn square (see SQUARE above).
+        square = len(post.get("media") or []) > 1
         if kind == "card":
-            return self._save(self._card(item), target_dir, index)
+            return self._save(self._card(item, square), target_dir, index)
         if kind == "signal":
-            return self._save(self._signal(item), target_dir, index)
+            return self._save(self._signal(item, square), target_dir, index)
         if kind == "evidence":
-            return self._save(self._evidence(item), target_dir, index)
+            return self._save(self._evidence(item, square), target_dir, index)
         if kind == "video":
             return self._video(item, target_dir, index)
         raise ValueError(f"{post['id']}: cannot render media kind {kind}")
 
-    def _card(self, item: dict) -> bytes:
+    def _card(self, item: dict, square: bool = False) -> bytes:
         visual = '<div class="bars"></div>'
         copy_width, shot_width, foot_width, shot_pad = "1040px", "0", "none", "0"
         shot_right, shot_radius = "-40px", "18px 0 0 0"  # a whole page bleeds off the right edge
         headline = item["headline"]
         size = "132px" if len(headline) <= 26 else "108px" if len(headline) <= 48 else "84px"
         if item.get("capture"):
-            viewport = item.get("viewport", "desktop")
+            viewport = item.get("viewport", "phone" if square else "desktop")
             shot = self._capture(item["capture"], viewport, item.get("selector"), item.get("wait_for"))
             mime = "image/png" if shot[:4] == b"\x89PNG" else "image/jpeg"
             shot_width = "560px" if viewport == "phone" else "860px"
@@ -270,23 +312,23 @@ class Renderer:
                      .replace("__NAME__", html.escape(self.project["name"].lower()))
                      .replace("__KICKER__", kicker).replace("__HEADLINE__", html.escape(headline).replace("\\n", "<br>"))
                      .replace("__SITE__", html.escape(site)).replace("__CREDIT__", html.escape(self.project.get("credit", ""))))
-        route = f"/__card/{len(_Handler.pages)}"
-        _Handler.pages[route] = page_html
-        context = self.browser.new_context(viewport={"width": 1600, "height": 900}, device_scale_factor=1)
-        try:
-            page = context.new_page()
-            page.goto(self.base + route, wait_until="load")
-            page.evaluate("document.fonts.ready")
-            page.wait_for_timeout(300)
-            return page.screenshot(type="png")
-        finally:
-            context.close()
+        if square:
+            captured = bool(item.get("capture"))
+            sizes = ("96px", "80px", "66px") if captured else ("132px", "108px", "88px")
+            css = SQUARE_CARD.replace("__SQ_SIZE__", sizes[0] if len(headline) <= 22 else sizes[1] if len(headline) <= 44 else sizes[2])
+            return self._page_image(self._restyle(page_html, css + (SQUARE_CARD_SHOT if captured else "")), SQUARE)
+        return self._page_image(page_html)
 
-    def _page_image(self, page_html: str) -> bytes:
-        """Screenshot a 1600x900 page built from one of the templates above."""
+    @staticmethod
+    def _restyle(page_html: str, css: str) -> str:
+        """Add rules after a template's own, so they take precedence."""
+        return page_html.replace("</style>", css + "</style>", 1)
+
+    def _page_image(self, page_html: str, size: tuple = (1600, 900)) -> bytes:
+        """Screenshot a page built from one of the templates above: 1600x900, or square for a shared post."""
         route = f"/__card/{len(_Handler.pages)}"
         _Handler.pages[route] = page_html
-        context = self.browser.new_context(viewport={"width": 1600, "height": 900}, device_scale_factor=1)
+        context = self.browser.new_context(viewport={"width": size[0], "height": size[1]}, device_scale_factor=1)
         try:
             page = context.new_page()
             page.goto(self.base + route, wait_until="load")
@@ -307,7 +349,7 @@ class Renderer:
                 .replace("__NAME__", html.escape(self.project["name"].lower())).replace("__SITE__", html.escape(site))
                 .replace("__CREDIT__", html.escape(self.project.get("credit", ""))))
 
-    def _signal(self, item: dict) -> bytes:
+    def _signal(self, item: dict, square: bool = False) -> bytes:
         """A number-first card. Everything on it comes from the post file, so it renders the same on any day."""
         number = str(item["number"])
         size = "400px" if len(number) <= 2 else "330px" if len(number) == 3 else "270px" if len(number) == 4 else "210px" if len(number) <= 6 else "160px"
@@ -323,16 +365,22 @@ class Renderer:
         detail = f'<p class="detail">{html.escape(item["detail"])}</p>' if item.get("detail") else ""
         page_html = (self._common(SIGNAL, item).replace("__NUMBER_SIZE__", size).replace("__NUMBER__", html.escape(number))
                      .replace("__LABEL__", html.escape(item["label"])).replace("__DETAIL__", detail).replace("__CHART__", chart))
+        if square:
+            tall = "470px" if len(number) <= 2 else "400px" if len(number) == 3 else "330px" if len(number) == 4 else "250px" if len(number) <= 6 else "190px"
+            return self._page_image(self._restyle(page_html, SQUARE_SIGNAL.replace("__SQ_SIZE__", tall)), SQUARE)
         return self._page_image(page_html)
 
-    def _evidence(self, item: dict) -> bytes:
+    def _evidence(self, item: dict, square: bool = False) -> bytes:
         """The product itself, captured live, with one element marked and a one-line caption."""
         tone = TONES.get(item.get("tone", "watch"), TONES["watch"])
-        shot = self._capture(item["capture"], item.get("viewport", "desktop"), item.get("selector"), item.get("wait_for"),
+        # In a square image the capture is taken at phone width, so its text stays readable in the feed.
+        shot = self._capture(item["capture"], item.get("viewport", "phone" if square else "desktop"), item.get("selector"), item.get("wait_for"),
                              item.get("highlight"), tone)
         mime = "image/png" if shot[:4] == b"\x89PNG" else "image/jpeg"
         page_html = (self._common(EVIDENCE, item).replace("__SHOT__", f"data:{mime};base64,{base64.b64encode(shot).decode()}")
                      .replace("__CAPTION__", html.escape(item["caption"])))
+        if square:
+            return self._page_image(self._restyle(page_html, SQUARE_EVIDENCE), SQUARE)
         return self._page_image(page_html)
 
     def _video(self, item: dict, target_dir: Path, index: int) -> Path:
