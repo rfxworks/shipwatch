@@ -32,6 +32,8 @@ MAX_SEGMENTS = 6
 MAX_ALT = 1000
 URL = re.compile(r"https?://[^\s]+")
 POST_ID = re.compile(r"[a-z0-9][a-z0-9-]{2,63}")
+# X refuses a post that carries more than one cashtag ($SYMBOL).
+CASHTAG = re.compile(r"(?<![A-Za-z0-9_$])\$[A-Za-z][A-Za-z0-9_]*")
 MEDIA_KINDS = {"card", "screenshot", "video", "file"}
 FILE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp",
               ".gif": "image/gif", ".mp4": "video/mp4"}
@@ -112,6 +114,9 @@ def validate(name: str, meta: dict, segments: list[str]) -> dict:
         for pattern, label in BANNED:
             if pattern.search(text):
                 fail(f"segment {index} contains {label}; describe what shipped instead")
+        cashtags = CASHTAG.findall(text)
+        if len(cashtags) > 1:
+            fail(f"segment {index} has {len(cashtags)} cashtags ({', '.join(cashtags)}); X accepts one per post")
     media = meta.get("media", [])
     if not isinstance(media, list) or len(media) > 4:
         fail("media must be a list of at most 4 items (they attach to the first segment)")

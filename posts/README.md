@@ -11,6 +11,7 @@ Run `python tools/posts.py` to check every post. The build fails when a post:
 - promises a price, a multiple or a return, or pushes urgency to buy;
 - links to a hosting provider's address instead of `shipwatch.bwltd.kr`;
 - is longer than 280 weighted characters in any segment (a link counts as 23);
+- carries more than one cashtag (`$SYMBOL`) in a segment, which X refuses;
 - has media without alt text.
 
 ## What happens after a merge
