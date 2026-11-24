@@ -24,6 +24,10 @@ Paste a mint address. Shipwatch looks up the website listed for that token on DE
 
 An edit is a reason to look closer. It does not show that a feature works, that a contract was deployed, or that anything is backed by funds.
 
+## What is counted
+
+Shipwatch counts how often the site is opened, so we know whether anyone uses it. There is no cookie, no third-party script and no stored identifier: the browser keeps a flag saying it has been here before and tells the server only "new" or "returning". The server stores daily totals, public at <https://api.shipwatch.bwltd.kr/api/stats>. To stop one connection inflating them, a salted hash of the connection is tallied in memory until the day ends and is never written to storage. Automated browsers are not counted. Counting began on 24 November 2026; earlier visits were not recorded.
+
 ## What is in here
 
 | Path | Purpose |

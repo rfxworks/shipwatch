@@ -87,6 +87,7 @@ def initialize():
             repeat_count INTEGER NOT NULL DEFAULT 0,
             association_ambiguous INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS submissions (bucket TEXT NOT NULL, stamp REAL NOT NULL);
+        CREATE TABLE IF NOT EXISTS visits (day TEXT PRIMARY KEY, opens INTEGER NOT NULL DEFAULT 0, new_visitors INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS github_cache (repo TEXT PRIMARY KEY, checked REAL NOT NULL, result TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS github_requests (stamp REAL NOT NULL);
         CREATE INDEX IF NOT EXISTS events_time ON events(id DESC);
@@ -474,6 +475,45 @@ def feed():
     return {"observed_at": now(), "interval_seconds": INTERVAL, "targets": targets, "events": events}
 
 
+# Visits are kept as daily totals only. To stop one connection inflating
+# them, a salted hash of the connection is tallied in memory until the day
+# ends (UTC); it is never written to storage and the salt changes on restart.
+VISIT_LOCK = threading.Lock()
+VISIT_TALLY = {"day": "", "connections": {}}
+VISIT_OPENS_PER_CONNECTION = 20
+VISIT_NEW_PER_CONNECTION = 2
+
+
+def record_visit(bucket, first):
+    """Count one opening of the site; `first` is the browser saying it has not been here before."""
+    day = dt.datetime.now(dt.timezone.utc).date().isoformat()
+    with VISIT_LOCK:
+        if VISIT_TALLY["day"] != day:
+            VISIT_TALLY["day"], VISIT_TALLY["connections"] = day, {}
+        connections = VISIT_TALLY["connections"]
+        if bucket not in connections and len(connections) >= 50000:
+            return False
+        tally = connections.setdefault(bucket, [0, 0])
+        if tally[0] >= VISIT_OPENS_PER_CONNECTION:
+            return False
+        tally[0] += 1
+        first = bool(first) and tally[1] < VISIT_NEW_PER_CONNECTION
+        if first:
+            tally[1] += 1
+    with database() as con:
+        con.execute("""INSERT INTO visits(day,opens,new_visitors) VALUES (?,1,?)
+            ON CONFLICT(day) DO UPDATE SET opens=opens+1,new_visitors=new_visitors+excluded.new_visitors""", (day, int(first)))
+    return True
+
+
+def stats():
+    with database() as con:
+        days = [dict(row) for row in con.execute("SELECT day,new_visitors AS visitors,opens FROM visits ORDER BY day DESC LIMIT 30")]
+        total = con.execute("SELECT coalesce(sum(new_visitors),0),coalesce(sum(opens),0),min(day) FROM visits").fetchone()
+        watched = con.execute("SELECT count(*) FROM targets").fetchone()[0]
+    return {"counting_since": total[2], "visitors": total[0], "opens": total[1], "projects_watched": watched, "days": days}
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -506,11 +546,14 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(200, {"project": "shipwatch", "status": "ok", "code_sha256": CODE_SHA})
         elif path == "/api/feed":
             self.reply(200, feed())
+        elif path == "/api/stats":
+            self.reply(200, stats())
         else:
             self.reply(404, {"error": "Unknown endpoint."})
 
     def do_POST(self):
-        if urlsplit(self.path).path != "/api/watch":
+        path = urlsplit(self.path).path
+        if path not in ("/api/watch", "/api/visit"):
             self.reply(404, {"error": "Unknown endpoint."})
             return
         try:
@@ -518,10 +561,15 @@ class Handler(BaseHTTPRequestHandler):
             if not 0 < size <= 1000:
                 raise ValueError("Invalid request size.")
             request = json.loads(self.rfile.read(size))
-            if not isinstance(request, dict) or not isinstance(request.get("mint"), str):
-                raise ValueError("Paste a full Solana mint address.")
             address = self.headers.get("X-Real-IP") or self.client_address[0]
             bucket = hashlib.sha256((self.server.bucket_secret + address + dt.date.today().isoformat()).encode()).hexdigest()
+            if path == "/api/visit":
+                if not isinstance(request, dict):
+                    raise ValueError("Invalid request.")
+                self.reply(200, {"counted": record_visit(bucket, request.get("new") is True)})
+                return
+            if not isinstance(request, dict) or not isinstance(request.get("mint"), str):
+                raise ValueError("Paste a full Solana mint address.")
             result = add_target(request["mint"].strip(), bucket)
             self.reply(200, result)
         except (ValueError, OSError, http.client.HTTPException) as exc:

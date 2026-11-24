@@ -236,6 +236,44 @@ class ObserverTests(unittest.TestCase):
         expected = hashlib.sha256(Path(shipwatch.__file__).read_bytes()).hexdigest()
         self.assertEqual(shipwatch.CODE_SHA, expected)
 
+    def test_visits_are_kept_as_daily_totals_and_one_connection_cannot_inflate_them(self):
+        shipwatch.VISIT_TALLY.update(day="", connections={})
+        self.assertTrue(shipwatch.record_visit("connection-a", True))
+        self.assertTrue(shipwatch.record_visit("connection-b", False))
+        for _ in range(40):
+            shipwatch.record_visit("connection-a", True)
+        totals = shipwatch.stats()
+        self.assertEqual(totals["opens"], shipwatch.VISIT_OPENS_PER_CONNECTION + 1)
+        self.assertEqual(totals["visitors"], shipwatch.VISIT_NEW_PER_CONNECTION)
+        self.assertEqual(len(totals["days"]), 1)
+        self.assertEqual(totals["counting_since"], totals["days"][0]["day"])
+        with shipwatch.database() as con:
+            columns = [row[1] for row in con.execute("PRAGMA table_info(visits)")]
+        self.assertEqual(columns, ["day", "opens", "new_visitors"], "only daily totals are stored")
+
+    def test_visit_and_stats_http_entry_points(self):
+        shipwatch.VISIT_TALLY.update(day="", connections={})
+        server = shipwatch.ThreadingHTTPServer(("127.0.0.1", 0), shipwatch.Handler)
+        server.bucket_secret = "test-secret"
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            for body, counted in (({"new": True}, True), ({"new": "yes"}, True), ({}, True)):
+                connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=3)
+                connection.request("POST", "/api/visit", body=json.dumps(body), headers={"Content-Type": "application/json"})
+                response = connection.getresponse()
+                self.assertEqual((response.status, json.load(response)["counted"]), (200, counted))
+                connection.close()
+            connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=3)
+            connection.request("GET", "/api/stats")
+            totals = json.load(connection.getresponse())
+            connection.close()
+            self.assertEqual((totals["visitors"], totals["opens"]), (1, 3), "only a literal true counts as a new visitor")
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
+
     def test_watch_http_entry_point_and_duplicate_submission(self):
         server = shipwatch.ThreadingHTTPServer(("127.0.0.1", 0), shipwatch.Handler)
         server.bucket_secret = "test-secret"
