@@ -4,18 +4,26 @@ date = 2026-11-24
 not_before = 2026-11-24T18:04:00Z
 
 [[media]]
-kind = "card"
-kicker = "Token launch: tomorrow"
-headline = "One check: who created it?"
+kind = "signal"
+number = "1"
+label = "wallet creates the real token"
+detail = "FZWqyszT...FR5D8zv · published 22 November, before the launch"
+tone = "watch"
+alt = "Shipwatch card: the number 1, 'wallet creates the real token', with the shortened creator wallet address and the note that it was published on 22 November, before the launch."
+
+[[media]]
+kind = "evidence"
 capture = "/verify.html"
-viewport = "phone"
 selector = "#token-status"
 wait_for = "#token-status[data-state=none] .facts, #token-status[data-state=live]"
-alt = "Shipwatch card reading 'One check: who created it?' beside the token box from the verify page, which shows the planned launch day and the full address of the wallet that will create the token."
+caption = "The creator wallet, published in the open before launch."
+tone = "watch"
+alt = "The token box from the Shipwatch verify page, showing the planned launch day and the full address of the wallet that will create the token."
 +++
 Tomorrow there's a Shipwatch token. Fakes will show up too. 🕵️
 
-One check beats them all: open the coin page, find the creator, compare it with the wallet we published Sunday. Different wallet? Not ours.
+One check beats them all. The real one is created by this wallet, public since Sunday:
 
-Wallet now, address once it's live:
-https://shipwatch.bwltd.kr/verify.html#token
+FZWqyszTxQ2a3EsrAMkSvBac9A94erugDh7CTFR5D8zv
+
+Different creator on the coin page? Not ours.

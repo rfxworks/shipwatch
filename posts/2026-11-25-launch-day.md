@@ -4,15 +4,29 @@ date = 2026-11-25
 not_before = 2026-11-25T15:49:00Z
 
 [[media]]
-kind = "card"
-kicker = "Shipwatch token"
-headline = "Launch day."
-alt = "Shipwatch card reading 'Launch day.' under the label 'Shipwatch token'."
+kind = "signal"
+number = "TODAY"
+label = "the Shipwatch token goes live"
+detail = "tonight, US Eastern time · on Pump.fun · from one published wallet"
+tone = "watch"
+alt = "Shipwatch card reading 'TODAY: the Shipwatch token goes live', tonight US Eastern time, on Pump.fun, from one published wallet."
+
+[[media]]
+kind = "evidence"
+capture = "/"
+selector = "#token-panel"
+wait_for = "#token-panel[data-state=planned], #token-panel[data-state=live]"
+caption = "The address appears here, in the repo and on this account. Same minute."
+tone = "watch"
+alt = "The token panel from the Shipwatch home page, naming the launch day and the wallet that will create the token."
 +++
 Launch day. 🚢
 
-The Shipwatch token goes live on Pump.fun tonight, US Eastern time. Its address will appear in three places in the same minute: this account, our repo and the verify page.
+Tonight, US Eastern time, the Shipwatch token goes live on Pump.fun.
+
+Its address appears in 3 places in the same minute:
+• this account
+• our public repo
+• the verify page
 
 Anywhere else, or any earlier? Not ours.
-
-https://shipwatch.bwltd.kr/verify.html#token
