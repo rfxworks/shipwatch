@@ -34,7 +34,8 @@ URL = re.compile(r"https?://[^\s]+")
 POST_ID = re.compile(r"[a-z0-9][a-z0-9-]{2,63}")
 # X refuses a post that carries more than one cashtag ($SYMBOL).
 CASHTAG = re.compile(r"(?<![A-Za-z0-9_$])\$[A-Za-z][A-Za-z0-9_]*")
-MEDIA_KINDS = {"card", "screenshot", "video", "file"}
+MEDIA_KINDS = {"card", "screenshot", "video", "file", "signal", "evidence"}
+TONES = {"watch", "ship", "alert", "info"}
 FILE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp",
               ".gif": "image/gif", ".mp4": "video/mp4"}
 
@@ -130,6 +131,8 @@ def validate(name: str, meta: dict, segments: list[str]) -> dict:
         kind = item["kind"]
         allowed = {"kind", "alt"} | {
             "card": {"headline", "kicker", "capture", "viewport", "selector", "wait_for"},
+            "signal": {"number", "label", "detail", "series", "axis", "ticker", "subject", "tone"},
+            "evidence": {"capture", "caption", "viewport", "selector", "wait_for", "highlight", "ticker", "subject", "tone"},
             "screenshot": {"path", "viewport", "selector", "wait_for"},
             "video": {"script", "viewport"},
             "file": {"src"},
@@ -138,6 +141,30 @@ def validate(name: str, meta: dict, segments: list[str]) -> dict:
             fail(f"media {index} ({kind}) has unknown keys {sorted(set(item) - allowed)}")
         if kind == "card" and not isinstance(item.get("headline"), str):
             fail(f"media {index} (card) needs a headline")
+        if kind == "signal":
+            if not isinstance(item.get("number"), str) or not 1 <= len(item["number"]) <= 8:
+                fail(f"media {index} (signal) needs number = a short string such as '36'")
+            if not isinstance(item.get("label"), str) or not 3 <= len(item["label"]) <= 60:
+                fail(f"media {index} (signal) needs a label of 3-60 characters saying what the number counts")
+            series = item.get("series", [])
+            if not isinstance(series, list) or len(series) > 96 or any(isinstance(v, bool) or not isinstance(v, (int, float)) or v < 0 for v in series):
+                fail(f"media {index} (signal) series must be up to 96 numbers, none negative")
+            axis = item.get("axis", [])
+            if not isinstance(axis, list) or len(axis) > 3 or any(not isinstance(v, str) or len(v) > 40 for v in axis):
+                fail(f"media {index} (signal) axis must be up to three short labels")
+        if kind == "evidence":
+            if not str(item.get("capture", "")).startswith("/"):
+                fail(f"media {index} (evidence) needs capture = a site path beginning with '/'")
+            if not isinstance(item.get("caption"), str) or not 3 <= len(item["caption"]) <= 90:
+                fail(f"media {index} (evidence) needs a caption of 3-90 characters")
+        if kind in ("signal", "evidence"):
+            if item.get("tone", "watch") not in TONES:
+                fail(f"media {index} tone must be one of {sorted(TONES)}")
+            if "ticker" in item and not re.fullmatch(r"\$?[A-Za-z0-9]{1,12}", str(item["ticker"])):
+                fail(f"media {index} ticker must look like $SYMBOL")
+            for key in ("detail", "subject"):
+                if key in item and (not isinstance(item[key], str) or len(item[key]) > 70):
+                    fail(f"media {index} {key} must be at most 70 characters")
         if kind == "screenshot" and not str(item.get("path", "")).startswith("/"):
             fail(f"media {index} (screenshot) needs a site path beginning with '/'")
         if kind == "video" and not re.fullmatch(r"[a-z0-9-]{1,40}", str(item.get("script", ""))):
