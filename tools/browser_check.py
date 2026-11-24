@@ -145,6 +145,10 @@ def run(base: str) -> list[str]:
         check(page.locator("footer a[href='./api.html']").count() == 1, "the home page footer does not link the data API page")
         page.goto(base + "/api.html")
         check(page.locator("pre.commands").count() == 4, "the data API page does not show a command for each address")
+        # The header stays on screen while scrolling, so it needs its backing on every page.
+        page.evaluate("window.scrollTo(0, 600)")
+        page.locator(".header.scrolled").wait_for(timeout=5_000)
+        page.evaluate("window.scrollTo(0, 0)")
         for width in WIDTHS:
             page.set_viewport_size({"width": width, "height": 844})
             page.wait_for_timeout(150)

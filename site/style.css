@@ -114,8 +114,10 @@ h2{font-size:24px;letter-spacing:-.055em;line-height:1.12;font-weight:550}
 .coverage h2{font-size:35px;letter-spacing:-.06em}
 .coverage>div>p:not(.eyebrow){color:var(--soft);font-size:13px}
 .coverage>div>p+p{margin-top:12px}
-.footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding-block:23px;font-size:10px;color:var(--soft)}
+.footer{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:10px 40px;padding-block:26px 30px;font-size:11px;color:var(--soft)}
 .footer>span:last-child{width:100%}
+.footer-note{flex:1 1 340px;max-width:540px}
+.footer-links{display:flex;flex-wrap:wrap;gap:8px 24px}
 @media(max-width:950px){.workspace{grid-template-columns:minmax(0,1fr) 260px;gap:24px}.hero{gap:25px}.watchlist{padding-left:20px}}
 @media(max-width:680px){
  .wrap{width:calc(100% - 32px)}.header{height:65px}.brand{font-size:22px}.brand-mark{width:22px;height:21px}nav{gap:13px;font-size:11px}
@@ -243,7 +245,7 @@ main>section,#watchlist{scroll-margin-top:76px}
 .cards article{min-width:0;border:1px solid var(--line);border-radius:4px;background:rgba(23,28,35,.6);padding:20px}
 .cards h3{font-size:16px;font-weight:600;letter-spacing:-.03em;margin-bottom:8px}
 .cards p{font-size:13px;color:var(--soft)}
-.maker{display:flex;flex-wrap:wrap;align-items:center;gap:14px 22px;padding-block:44px}
+.maker{display:flex;flex-wrap:wrap;align-items:center;gap:14px 22px;padding-block:44px;border-bottom:1px solid var(--line)}
 .maker-mark{width:34px;height:34px;flex-shrink:0;color:var(--ink)}
 .maker-line{font-size:20px;font-weight:550;letter-spacing:-.04em}
 .maker-links{display:flex;flex-wrap:wrap;gap:8px 20px;margin-left:auto;font-size:13px;color:#d0d5dd}
