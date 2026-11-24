@@ -169,6 +169,7 @@ code{font:12px var(--mono);color:#d9dfe6;background:#1c232c;padding:1px 5px;bord
 .hash-table .bad{color:var(--red)}
 .hash-table .pending{color:var(--soft)}
 .commands{margin:0;background:#10151b;border:1px solid var(--line);padding:16px;overflow-x:auto;font:12px/1.7 var(--mono);color:#d9dfe6;white-space:pre}
+.api .facts+.commands{margin-top:16px}
 @media(max-width:820px){.verify-block{grid-template-columns:1fr;gap:16px;padding-block:28px}.verify-lede{font-size:15px}.facts>div{grid-template-columns:1fr;gap:2px}.hash-table td:nth-child(2),.hash-table th:nth-child(2){display:none}}
 
 /* ---- The page as a sequence of blocks ------------------------------------

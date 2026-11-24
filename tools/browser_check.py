@@ -141,6 +141,15 @@ def run(base: str) -> list[str]:
         page.locator("#build-link").filter(has_text="verify").wait_for(timeout=10_000)
         page.locator("#token-panel[data-state=planned], #token-panel[data-state=live], #token-panel[data-state=unknown]").wait_for(timeout=20_000)
         check(page.locator("#token-panel").get_attribute("data-state") in ("planned", "live"), "home page token panel did not render")
+        # The public data is documented on its own page, linked from the footer.
+        check(page.locator("footer a[href='./api.html']").count() == 1, "the home page footer does not link the data API page")
+        page.goto(base + "/api.html")
+        check(page.locator("pre.commands").count() == 4, "the data API page does not show a command for each address")
+        for width in WIDTHS:
+            page.set_viewport_size({"width": width, "height": 844})
+            page.wait_for_timeout(150)
+            check(page.evaluate("document.documentElement.scrollWidth <= innerWidth"), f"data API page overflows sideways at {width}px")
+        page.set_viewport_size({"width": 1440, "height": 900})
 
         page.goto(base + "/about.html")
         check("Reflex Works" in page.locator("h1").inner_text() or page.locator("h1").count() == 1, "the about page has no heading")

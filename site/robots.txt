@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://shipwatch.bwltd.kr/sitemap.xml
