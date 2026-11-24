@@ -23,8 +23,16 @@
   </header>
   <main class="wrap">
     <section class="hero">
-      <div><p class="eyebrow">SOLANA PROJECT WATCH</p><h1>Watch what<br>the dev <span>ships.</span></h1></div>
-      <div class="hero-aside"><p>The chart shows the price.<br>Follow the project behind it.</p><p class="hero-detail">Website edits. Linked releases.<br>Timestamped evidence you can inspect.</p></div>
+      <div class="hero-copy">
+        <p class="eyebrow">SOLANA PROJECT WATCH</p>
+        <h1>Watch what<br>the dev <span>ships.</span></h1>
+        <p class="hero-lede">The chart shows the price. Follow the project behind it: website edits, code changes and outages, timestamped, with evidence you can open.</p>
+        <p class="hero-maker">Built in public by <a href="https://x.com/rfxworks">Reflex Works</a>. <span id="hero-release">Every release can be checked against its source.</span></p>
+      </div>
+      <div class="radar">
+        <canvas id="radar" role="img" aria-label="Radar of the watched projects. Each dot is one project; the nearer the centre, the more recently its site changed. The watchlist below holds the same information as text."></canvas>
+        <p id="radar-readout" class="radar-readout" role="status">Scanning the watchlist…</p>
+      </div>
     </section>
     <form id="watch-form" class="watch-form">
       <label for="mint">Watch a Solana mint</label>

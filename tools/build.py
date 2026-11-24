@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import posts as post_queue  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-SITE_FILES = ["index.html", "verify.html", "style.css", "app.js", "verify.js", "visit.js", "token-plan.json", "geist.woff2",
+SITE_FILES = ["index.html", "verify.html", "style.css", "app.js", "verify.js", "visit.js", "radar.js", "token-plan.json", "geist.woff2",
               "geist-OFL.txt", "favicon.png", "social.png", "demo.mp4"]
 ADDRESS = r"[1-9A-HJ-NP-Za-km-z]{32,44}"
 

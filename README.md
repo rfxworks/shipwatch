@@ -22,6 +22,8 @@ Paste a mint address. Shipwatch looks up the website listed for that token on DE
 | Check failed / Back online | Two checks in a row failed, or the site answered again. |
 | Recurring | The same change was seen on this site before: rotating text, or scripts alternating between builds. The feed lists only its latest occurrence. |
 
+The home page opens with a radar of the watchlist: one dot per project, nearer the centre the more recently its site changed. Picking a dot narrows the feed to that project.
+
 An edit is a reason to look closer. It does not show that a feature works, that a contract was deployed, or that anything is backed by funds.
 
 ## What is counted

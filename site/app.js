@@ -1,3 +1,5 @@
+import {createRadar} from "./radar.js";
+
 const API = "https://api.shipwatch.bwltd.kr";
 const $ = selector => document.querySelector(selector);
 let state = {targets: [], events: []};
@@ -44,6 +46,13 @@ async function copyDeepLink(button, hash) {
     location.hash = hash;
   }
 }
+
+// The hero radar: picking a dot narrows the feed to that project.
+const radar = createRadar($("#radar"), $("#radar-readout"), mint => {
+  project = mint;
+  draw();
+  $("#feed-heading").scrollIntoView({block: "start"});
+});
 
 // A project link (#watch-<mint>) opens the feed narrowed to that project.
 function openLinkedProject() {
@@ -97,6 +106,8 @@ function searchTargets() {
 }
 
 function draw() {
+  radar.update(state.targets);
+  radar.select(project);
   const events = $("#events");
   events.replaceChildren();
   const groups = {all: Object.keys(labels), changes: ["page", "assets", "release", "repository"], availability: ["unavailable", "recovered"], baseline: ["baseline"]};
@@ -257,6 +268,8 @@ async function refresh() {
     const value = await response.json();
     if (!Array.isArray(value.events) || !Array.isArray(value.targets)) throw new Error("The observer returned an invalid feed.");
     const first = !state.targets.length;
+    // Some listings include the '$' in the symbol itself; the page adds its own.
+    for (const entry of [...value.targets, ...value.events]) entry.symbol = String(entry.symbol).replace(/^\$+/, "");
     state = value;
     draw();
     if (first) openLinkedProject();
@@ -377,4 +390,5 @@ drawToken();
 fetch("./build.json", {cache: "no-store"}).then(response => response.ok ? response.json() : null).then(build => {
   if (!build || !build.source || !build.source.commit) return;
   $("#build-link").textContent = `Open source · v${build.version} · ${build.source.commit.slice(0, 7)} · verify ↗`;
+  if (build.source.commit_time) $("#hero-release").textContent = `Latest release v${build.version}, ${age(build.source.commit_time)}.`;
 }).catch(() => {});

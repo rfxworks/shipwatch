@@ -48,6 +48,11 @@ def run(base: str) -> list[str]:
             check(page.evaluate("document.documentElement.scrollWidth <= innerWidth"), f"home page overflows sideways at {width}px")
         page.set_viewport_size({"width": 1440, "height": 900})
         check(page.locator(".target").count() >= 1, "watchlist shows no projects")
+        # The hero radar draws one dot per watched project, and picking a dot narrows the feed to it.
+        check(page.locator("#radar").get_attribute("data-blips") == str(page.locator(".target").count()), "the radar does not show every watched project")
+        box = page.locator("#radar").bounding_box()
+        check(bool(box) and box["width"] >= 200 and abs(box["width"] - box["height"]) < 2, "the radar is not a visible square")
+        check("on the radar" in page.locator("#radar-readout").inner_text(), "the radar readout does not summarise the watchlist")
         check(page.locator(".event").count() >= 1, "feed shows no observations")
         check(page.locator(".event").count() == page.locator(".event time[datetime]").count(), "an observation has no exact time")
         shares = page.locator(".event .event-links a.share-x")
