@@ -182,7 +182,11 @@ def build(out: Path, render: bool, include_drafts: bool = False, simulate_launch
                     target = target_dir / f"{index}{source.suffix.lower()}"
                     shutil.copyfile(source, target)
                 elif renderer is not None:
-                    target = renderer.render(post, item, index, target_dir)
+                    try:
+                        target = renderer.render(post, item, index, target_dir)
+                    except Exception as error:  # a slow page must not stop a release: try once more
+                        print(f"{post['id']}: media {index} did not render ({type(error).__name__}); trying once more", file=sys.stderr)
+                        target = renderer.render(post, item, index, target_dir)
                 else:
                     continue  # --no-media: leave rendered media out of the queue entirely
                 entry["segments"][0]["media"].append({
