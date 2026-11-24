@@ -94,6 +94,18 @@ def run(base: str) -> list[str]:
         check(page.locator("#search-empty").is_visible(), "a search with no match does not say so")
         search.fill("")
         check(page.locator(".target:visible").count() == total, "clearing the search does not list every project again")
+        # Observations newer than the last visit carry a NEW mark, and only for that one visit.
+        check(page.locator(".event-new").count() == 0, "observations are marked new on a first visit")
+        newest = page.evaluate("localStorage.getItem('shipwatch-last-seen')")
+        check(bool(newest) and newest.isdigit(), "the newest observation seen is not remembered")
+        page.evaluate("localStorage.setItem('shipwatch-last-seen', '0')")
+        page.reload()
+        page.get_by_text("Feed checked").wait_for(timeout=30_000)
+        check(page.locator(".event").count() == page.locator(".event .event-new").count(), "observations since the last visit are not marked new")
+        seen = page.locator(".event").evaluate_all("nodes => Math.max(...nodes.map(node => Number(node.id.slice(6))))")
+        page.reload()
+        page.get_by_text("Feed checked").wait_for(timeout=30_000)
+        check(page.locator(".event").evaluate_all("nodes => nodes.every(node => !node.querySelector('.event-new') || Number(node.id.slice(6)) > %d)" % seen), "NEW marks do not clear on the next visit")
         # Sorting the watchlist three ways, kept across a reload.
         sort = page.locator("#watchlist-sort")
         check(sort.locator("button[data-sort]").count() == 3, "the watchlist has no sort control")

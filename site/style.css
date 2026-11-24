@@ -60,6 +60,7 @@ h2{font-size:24px;letter-spacing:-.055em;line-height:1.12;font-weight:550}
 .event-kind::before{content:"";display:inline-block;width:6px;height:6px;background:currentColor}
 .event-repeat{color:var(--soft);border-left:1px solid var(--line);padding-left:7px;font-size:9px;letter-spacing:.04em}
 .event-association{color:#ffd08f;border-left:1px solid var(--line);padding-left:7px;font-size:9px;letter-spacing:.04em}
+.event-new{color:var(--bg);background:var(--orange);padding:0 5px;font-size:9px;font-weight:700;letter-spacing:.04em}
 .event[data-kind=baseline] .event-kind{color:#a8b2be}
 .event[data-kind=recovered] .event-kind{color:var(--green)}
 .event[data-kind=unavailable] .event-kind{color:var(--red)}

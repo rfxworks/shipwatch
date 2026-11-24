@@ -21,6 +21,17 @@ try {
   const stored = localStorage.getItem("shipwatch-watchlist-sort");
   if (SORTS.includes(stored)) sortOrder = stored;
 } catch {}
+// What is new since the last visit: this browser keeps the highest observation id it has
+// been shown. Without a stored id (a first visit, or no storage) nothing is marked.
+let lastSeen = null;
+try {
+  const stored = localStorage.getItem("shipwatch-last-seen");
+  if (stored !== null && /^\d+$/.test(stored)) lastSeen = Number(stored);
+} catch {}
+function rememberSeen(events) {
+  const newest = Math.max(lastSeen || 0, ...events.map(event => Number(event.id) || 0));
+  try { localStorage.setItem("shipwatch-last-seen", String(newest)); } catch {}
+}
 const labels = {baseline: "FIRST OBSERVATION", page: "PAGE EDIT", assets: "CODE / STYLE CHANGE", release: "LINKED RELEASE", repository: "REPOSITORY LINK", unavailable: "CHECK FAILED", recovered: "BACK ONLINE"};
 const create = (tag, className, text) => {
   const node = document.createElement(tag);
@@ -177,6 +188,7 @@ function draw() {
     const kind = create("span", "event-kind", labels[event.kind]);
     if (recurring) kind.append(create("span", "event-repeat", `RECURRING · SEEN ${repeats} TIME${repeats === 1 ? "" : "S"} BEFORE`));
     if (event.association_ambiguous) kind.append(create("span", "event-association", "ATTRIBUTION PAUSED"));
+    if (lastSeen !== null && Number(event.id) > lastSeen) kind.append(create("span", "event-new", "NEW"));
     const observed = create("time", "", age(event.observed));
     observed.dateTime = event.observed;
     if (utc(event.observed)) observed.title = utc(event.observed);
@@ -320,6 +332,7 @@ async function refresh() {
     for (const entry of [...value.targets, ...value.events]) entry.symbol = String(entry.symbol).replace(/^\$+/, "");
     state = value;
     draw();
+    rememberSeen(value.events);
     if (first) openLinkedProject();
     $("#connection").textContent = "Feed checked " + new Date().toLocaleTimeString(undefined, {hour: "2-digit", minute: "2-digit"});
     $("#connection-dot").className = "online";
