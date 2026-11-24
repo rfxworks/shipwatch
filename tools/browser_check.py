@@ -65,6 +65,8 @@ def run(base: str) -> list[str]:
         page.get_by_role("button", name="All checks", exact=True).click()
         check(page.locator(".target").count() == page.locator(".target > .target-signal, .target > .target-unchanged").count(), "a watched project shows neither its latest change nor that none was seen")
         check(page.locator(".target").evaluate_all("rows => rows.every(row => !row.querySelector('.target-status.unavailable') || (row.querySelector(':scope > .target-reason') || {}).textContent)"), "a project that could not be checked does not say why in plain words")
+        check(page.locator(".target").count() == page.locator(".target > .target-links a[href^='https://solscan.io/token/']").count(), "a watched project has no Solscan link")
+        check(page.locator(".target-links a").evaluate_all("nodes => nodes.length > 0 && nodes.every(node => (node.href.startsWith('https://solscan.io/token/') || node.href.startsWith('https://dexscreener.com/')) && node.target === '_blank' && node.rel === 'noopener noreferrer')"), "a project link does not open DEX Screener or Solscan in a new tab")
         # Finding a project on the watchlist.
         search = page.get_by_role("searchbox", name="Find a project on the watchlist")
         total = page.locator(".target").count()

@@ -195,7 +195,10 @@ function draw() {
     heading.append(create("h3", "", "$" + target.symbol + " · " + target.name), create("span", "target-status " + target.status, status));
     const website = link(new URL(target.url).hostname + " ↗", target.url);
     website.className = "target-site";
-    row.append(heading, website, create("p", "target-check", "Checked " + (target.checked ? age(target.checked) : "pending")));
+    const elsewhere = create("p", "target-links");
+    if (String(target.link_source || "").startsWith("https://dexscreener.com/")) elsewhere.append(link("DEX Screener ↗", target.link_source));
+    elsewhere.append(link("Solscan ↗", "https://solscan.io/token/" + encodeURIComponent(target.mint)));
+    row.append(heading, website, elsewhere, create("p", "target-check", "Checked " + (target.checked ? age(target.checked) : "pending")));
     if (target.latest_signal) {
       const signal = create("a", "target-signal", `Latest new · ${labels[target.latest_signal.kind]} · ${age(target.latest_signal.observed)}`);
       signal.href = "#event-" + target.latest_signal.id;
