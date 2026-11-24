@@ -13,13 +13,17 @@
   <title>Verify Shipwatch</title>
   <link rel="icon" href="./favicon.png">
   <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./motion.js"></script>
   <script type="module" src="./verify.js"></script>
   <script type="module" src="./visit.js"></script>
 </head>
 <body>
-  <header class="header wrap">
-    <a href="./" class="brand"><span class="brand-mark" aria-hidden="true"></span>shipwatch<span class="brand-period">.</span></a>
-    <nav aria-label="Main"><a href="./">Feed</a><a href="#token">Token</a><a id="repo-nav" href="#source">Source ↗</a></nav>
+  <div class="progress" aria-hidden="true"></div>
+  <header class="header" id="top">
+    <div class="wrap header-in">
+      <a href="./" class="brand"><span class="brand-mark" aria-hidden="true"></span>shipwatch<span class="brand-period">.</span></a>
+      <nav aria-label="Main"><a href="./">Radar</a><a href="#token">Token</a><a id="repo-nav" href="#source">Source ↗</a><a href="./about.html">About</a></nav>
+    </div>
   </header>
   <main class="wrap verify">
     <section class="verify-hero">

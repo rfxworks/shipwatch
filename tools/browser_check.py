@@ -54,6 +54,13 @@ def run(base: str) -> list[str]:
         check(bool(box) and box["width"] >= 200 and abs(box["width"] - box["height"]) < 2, "the radar is not a visible square")
         check("on the radar" in page.locator("#radar-readout").inner_text(), "the radar readout does not summarise the watchlist")
         check(page.locator(".event").count() >= 1, "feed shows no observations")
+        # The page opens short: a few observations and projects, with the rest one press away.
+        check(1 <= page.locator(".event:visible").count() <= 6, "the feed does not open with at most six observations")
+        if page.locator(".event").count() > 6:
+            page.locator("#more-events").click()
+            check(page.locator(".event:visible").count() > 6, "asking for more observations shows no more")
+        check(page.locator("[data-stat]").evaluate_all("nodes => nodes.length === 4 && nodes.every(node => /^[\\d,]+$/.test(node.textContent))"), "the numbers band is not filled in")
+        check(page.locator(".target-name").evaluate_all("nodes => nodes.every(node => node.title === node.textContent)"), "a project's full name is not kept where it is cut")
         check(page.locator(".event").count() == page.locator(".event time[datetime]").count(), "an observation has no exact time")
         shares = page.locator(".event .event-links a.share-x")
         check(shares.count() == page.locator(".event").count(), "an observation has no Share on X link")
@@ -74,7 +81,11 @@ def run(base: str) -> list[str]:
         check(page.locator(".target-links a").evaluate_all("nodes => nodes.length > 0 && nodes.every(node => (node.href.startsWith('https://solscan.io/token/') || node.href.startsWith('https://dexscreener.com/')) && node.target === '_blank' && node.rel === 'noopener noreferrer')"), "a project link does not open DEX Screener or Solscan in a new tab")
         # Finding a project on the watchlist.
         search = page.get_by_role("searchbox", name="Find a project on the watchlist")
-        total = page.locator(".target").count()
+        total = page.locator(".target:visible").count()
+        if page.locator(".target").count() > total:
+            page.locator("#more-targets").click()
+            check(page.locator(".target:visible").count() == page.locator(".target").count(), "asking for every project does not list them all")
+            page.locator("#more-targets").click()
         search.fill(page.locator(".target").first.evaluate("node => node.dataset.search.split('\\n')[0]"))
         check(page.locator(".target").first.is_visible(), "searching a project's symbol hides that project")
         check(page.locator("#search-empty").is_hidden(), "searching a listed symbol says no project matches")
@@ -103,6 +114,14 @@ def run(base: str) -> list[str]:
         page.locator("#build-link").filter(has_text="verify").wait_for(timeout=10_000)
         page.locator("#token-panel[data-state=planned], #token-panel[data-state=live], #token-panel[data-state=unknown]").wait_for(timeout=20_000)
         check(page.locator("#token-panel").get_attribute("data-state") in ("planned", "live"), "home page token panel did not render")
+
+        page.goto(base + "/about.html")
+        check("Reflex Works" in page.locator("h1").inner_text() or page.locator("h1").count() == 1, "the about page has no heading")
+        for width in WIDTHS:
+            page.set_viewport_size({"width": width, "height": 844})
+            page.wait_for_timeout(150)
+            check(page.evaluate("document.documentElement.scrollWidth <= innerWidth"), f"about page overflows sideways at {width}px")
+        page.set_viewport_size({"width": 1440, "height": 900})
 
         page.goto(base + "/verify.html")
         page.locator("#files-summary.ok, #files-summary.bad").wait_for(timeout=30_000)
@@ -144,7 +163,7 @@ def main() -> int:
         print("FAIL: " + problem, file=sys.stderr)
     if problems:
         return 1
-    print(f"browser checks passed on both pages at {', '.join(map(str, WIDTHS))} px")
+    print(f"browser checks passed on every page at {', '.join(map(str, WIDTHS))} px")
     return 0
 
 

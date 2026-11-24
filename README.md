@@ -22,7 +22,7 @@ Paste a mint address. Shipwatch looks up the website listed for that token on DE
 | Check failed / Back online | Two checks in a row failed, or the site answered again. |
 | Recurring | The same change was seen on this site before: rotating text, or scripts alternating between builds. The feed lists only its latest occurrence. |
 
-The home page opens with a radar of the watchlist: one dot per project, nearer the centre the more recently its site changed. Picking a dot narrows the feed to that project.
+The home page opens with a radar of the watchlist: one dot per project, nearer the centre the more recently its site changed. Picking a dot narrows the feed to that project. Below it the page is a sequence of blocks: the numbers, the token, adding a project, the latest changes and the watched projects as cards. Lists open short and grow on request.
 
 An edit is a reason to look closer. It does not show that a feature works, that a contract was deployed, or that anything is backed by funds.
 
@@ -41,6 +41,7 @@ Shipwatch counts how often the site is opened, so we know whether anyone uses it
 | `tools/` | Build, post checks, media rendering and browser checks. |
 | `token.toml`, `TOKEN.md` | The only official statement of the token's status. |
 | `site/token-plan.json` | The planned launch day and the creator wallet, published before the launch. |
+| `site/about.html` | Who builds this: Reflex Works, and the rules it ships by. |
 | `.github/workflows/` | Checks on pull requests; build, attestation and deploy on `main`. |
 
 ## How a change reaches the public
