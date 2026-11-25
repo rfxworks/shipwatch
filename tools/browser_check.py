@@ -126,6 +126,15 @@ def run(base: str) -> list[str]:
         check(page.locator("#watchlist-sort button[data-sort=offline]").get_attribute("aria-pressed") == "true", "the watchlist order is not kept after a reload")
         page.locator("#watchlist-sort button[data-sort=latest]").click()
         check(page.locator("#watchlist-sort button[data-sort=latest]").get_attribute("aria-pressed") == "true", "Latest change does not show as chosen")
+        # The chosen feed filter is kept across a reload and shows as pressed.
+        page.get_by_role("button", name="Availability", exact=True).click()
+        page.reload()
+        page.get_by_text("Feed checked").wait_for(timeout=30_000)
+        check(page.locator("[data-filter=availability]").get_attribute("aria-pressed") == "true", "the feed filter is not kept after a reload")
+        check(page.locator("[data-filter=all]").get_attribute("aria-pressed") == "false", "All checks shows as pressed beside a kept filter")
+        check(all(kind in ("unavailable", "recovered") for kind in page.locator(".event").evaluate_all("nodes => nodes.map(node => node.dataset.kind)")), "the kept filter does not narrow the feed after a reload")
+        page.get_by_role("button", name="All checks", exact=True).click()
+        check(page.evaluate("localStorage.getItem('shipwatch-filter')") == "all", "choosing All checks is not remembered")
         # Narrowing the feed to one project, from the watchlist and from a project link.
         page.locator(".target-only").first.click()
         check(page.locator("#project-filter").is_visible(), "the feed does not say which project it is narrowed to")

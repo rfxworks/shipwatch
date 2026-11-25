@@ -4,7 +4,18 @@ import {setStat} from "./motion.js";
 const API = "https://api.shipwatch.bwltd.kr";
 const $ = selector => document.querySelector(selector);
 let state = {targets: [], events: []};
+// The feed filter is kept in this browser if storage allows it; anything unknown means "All checks".
+const FILTERS = ["all", "changes", "novel", "availability", "baseline"];
 let filter = "all";
+try {
+  const stored = localStorage.getItem("shipwatch-filter");
+  if (FILTERS.includes(stored)) filter = stored;
+} catch {}
+function setFilter(name) {
+  filter = FILTERS.includes(name) ? name : "all";
+  try { localStorage.setItem("shipwatch-filter", filter); } catch {}
+  for (const button of document.querySelectorAll("[data-filter]")) button.setAttribute("aria-pressed", String(button.dataset.filter === filter));
+}
 let project = null;  // mint of the one project the feed is narrowed to, if any
 let busy = false;
 // The feed and the watchlist open short and grow on request, so the page is not one long list.
@@ -289,9 +300,8 @@ function draw() {
       signal.href = "#event-" + target.latest_signal.id;
       signal.addEventListener("click", event => {
         event.preventDefault();
-        filter = "all";
+        setFilter("all");
         if (project && project !== target.mint) project = null;
-        for (const button of document.querySelectorAll("[data-filter]")) button.setAttribute("aria-pressed", String(button.dataset.filter === "all"));
         location.hash = "event-" + target.latest_signal.id;
         draw();
       });
@@ -396,12 +406,12 @@ $("#watch-form").addEventListener("submit", async event => {
 });
 for (const button of document.querySelectorAll("[data-filter]")) {
   button.addEventListener("click", () => {
-    filter = button.dataset.filter;
+    setFilter(button.dataset.filter);
     shownEvents = FIRST_EVENTS;
-    for (const other of document.querySelectorAll("[data-filter]")) other.setAttribute("aria-pressed", String(other === button));
     draw();
   });
 }
+for (const button of document.querySelectorAll("[data-filter]")) button.setAttribute("aria-pressed", String(button.dataset.filter === filter));
 for (const button of document.querySelectorAll("[data-sort]")) {
   button.addEventListener("click", () => {
     sortOrder = button.dataset.sort;
