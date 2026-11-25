@@ -65,6 +65,11 @@ def run(base: str) -> list[str]:
         shares = page.locator(".event .event-links a.share-x")
         check(shares.count() == page.locator(".event").count(), "an observation has no Share on X link")
         check(shares.evaluate_all("nodes => nodes.every(node => node.href.startsWith('https://x.com/intent/post?') && node.target === '_blank' && node.rel === 'noopener noreferrer')"), "a Share on X link does not open X in a new tab")
+        # Each observation can be copied as one plain line of text.
+        check(page.locator(".event .event-links button.copy-citation").count() == page.locator(".event").count(), "an observation has no Copy as text button")
+        page.locator(".event .copy-citation").first.click()
+        page.wait_for_timeout(300)
+        check(page.locator(".event .copy-citation").first.inner_text() in ("Copied", "Copy not allowed here"), "Copy as text does not say whether it copied")
         page.locator(".event summary").first.click()
         check(page.locator(".event details[open] .evidence").first.is_visible(), "evidence does not expand")
         counted = "document.querySelectorAll('.event').length === Number(document.querySelector('[data-filter=%s] .filter-count').textContent)"

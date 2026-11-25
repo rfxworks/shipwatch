@@ -73,6 +73,20 @@ async function copyDeepLink(button, hash) {
   }
 }
 
+// One plain line naming an observation, for notes and messages. It holds only what
+// Shipwatch recorded about the observation, never text taken from the watched website.
+async function copyCitation(button, event) {
+  const url = new URL(location.href);
+  url.hash = "event-" + event.id;
+  const line = `Shipwatch evidence #${event.id} / $${event.symbol} / ${labels[event.kind] || event.kind} / observed ${utc(event.observed) || "at an unknown time"} / ${url.href}`;
+  try {
+    await navigator.clipboard.writeText(line);
+    button.textContent = "Copied";
+  } catch {
+    button.textContent = "Copy not allowed here";
+  }
+}
+
 // The hero radar: picking a dot narrows the feed to that project.
 const radar = createRadar($("#radar"), $("#radar-readout"), mint => {
   project = mint;
@@ -214,6 +228,9 @@ function draw() {
     const shareEvidence = create("button", "", "Copy evidence link");
     shareEvidence.type = "button";
     shareEvidence.addEventListener("click", () => copyDeepLink(shareEvidence, "event-" + event.id));
+    const citation = create("button", "copy-citation", "Copy as text");
+    citation.type = "button";
+    citation.addEventListener("click", () => copyCitation(citation, event));
     const shareUrl = new URL(location.href);
     shareUrl.hash = "event-" + event.id;
     const shareText = `$${event.symbol} · ${labels[event.kind]} · observed by Shipwatch`;
@@ -222,7 +239,7 @@ function draw() {
     const shareProject = create("button", "", "Copy project link");
     shareProject.type = "button";
     shareProject.addEventListener("click", () => copyDeepLink(shareProject, "watch-" + event.mint));
-    actions.append(link("Open website ↗", event.url), link("Mint ↗", "https://solscan.io/token/" + event.mint), shareEvidence, shareOnX, shareProject);
+    actions.append(link("Open website ↗", event.url), link("Mint ↗", "https://solscan.io/token/" + event.mint), shareEvidence, citation, shareOnX, shareProject);
     if (event.detail_url) actions.append(link(event.kind === "release" ? "Open release ↗" : "Repository ↗", event.detail_url));
     details.append(evidence);
     card.append(top, heading, create("p", "event-summary", event.summary), details, actions);
