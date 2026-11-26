@@ -35,23 +35,19 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Posts and build inputs
-        run: |
-          python tools/posts.py
-          python tools/build.py --check
+      - name: Build inputs
+        run: python tools/build.py --check
       - name: Frontend syntax
         run: node --check site/app.js && node --check site/verify.js
-      - name: Install the browser and ffmpeg
+      - name: Install the browser
         run: |
           python -m pip install --quiet playwright==1.65.2
           python -m playwright install --with-deps chromium
-          sudo apt-get install -y -qq ffmpeg
-      - name: Build, rendering draft posts too (drafts are never publishable)
-        run: python tools/build.py --include-drafts
+      - name: Build
+        run: python tools/build.py
       - name: Browser checks
         run: python tools/browser_check.py
-      # Every build renders every page and post image again, so a change made
-      # today must not break the build on the day the token goes live.
+      # The site must also build and pass with launch-day token values.
       - name: The same, as the site will be once the token is live
         run: |
           python tools/build.py --simulate-launch --out dist-launched

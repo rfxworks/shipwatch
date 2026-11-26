@@ -37,8 +37,7 @@ Shipwatch counts how often the site is opened, so we know whether anyone uses it
 | `site/` | The website. Served byte for byte as it appears here. |
 | `backend/shipwatch.py` | The observer and its API. One file, standard library only. |
 | `backend/deployer.py` | Runs on the server. Pulls the observer from the public site, checks its hash, and rolls back if the new version is unhealthy. |
-| `posts/` | Every post Shipwatch publishes on X, as text files. See [posts/README.md](posts/README.md). |
-| `tools/` | Build, post checks, media rendering and browser checks. |
+| `tools/` | The build, the browser checks and the live-release check. |
 | `token.toml`, `TOKEN.md` | The only official statement of the token's status. |
 | `site/token-plan.json` | The planned launch day and the creator wallet, published before the launch. |
 | `site/about.html` | Who builds this: Reflex Works, and the rules it ships by. |
@@ -50,7 +49,6 @@ Shipwatch counts how often the site is opened, so we know whether anyone uses it
 2. GitHub Actions runs the tests, builds `dist/`, checks both pages in a real browser, and signs a build attestation for the file manifest.
 3. The build is deployed to GitHub Pages. `build.json` on the site names the commit.
 4. The server checks the site every two minutes. If the observer's hash changed, it installs the new file, restarts, and confirms the running hash. A failed health check restores the previous file.
-5. If the commit added a file under `posts/`, the server publishes it to X.
 
 No step needs a person, and no workflow in this repository holds a secret.
 

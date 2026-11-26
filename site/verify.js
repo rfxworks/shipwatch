@@ -89,7 +89,7 @@ function drawToken(token, build) {
 
 async function checkFiles(build) {
   const body = $("#files");
-  const names = Object.keys(build.files).filter(name => !name.startsWith("posts/media/"));
+  const names = Object.keys(build.files);
   let matched = 0;
   let failed = 0;
   await Promise.all(names.map(async name => {

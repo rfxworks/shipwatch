@@ -54,9 +54,6 @@ curl -s https://raw.githubusercontent.com/rfxworks/shipwatch/$COMMIT/backend/shi
 
 `code_sha256` from the first command should equal the hash from the second. Right after a release they can differ for a few minutes while the server installs the new file.
 
-## 5. Check a post
-
-Every post on our X account exists as a file under [`posts/`](posts/) before it is published. If an account posts something that has no file here, it is not us. Published posts are listed with their links at <https://api.shipwatch.bwltd.kr/posts/receipts.json>.
 
 ## What this proves, and what it does not
 

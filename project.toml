@@ -9,6 +9,6 @@ repository = "https://github.com/rfxworks/shipwatch"
 credit = "Built by Reflex Works"
 
 [x]
-# Account that publishes this project's posts, and the studio behind it.
+# The project's X account, and the studio behind it.
 handle = "rfxworks"
 studio = "rfxworks"

@@ -1,7 +1,6 @@
 """Assemble the deployable site in dist/ and stamp it with its source commit.
 
-    python tools/build.py              full build, renders post media with Playwright
-    python tools/build.py --no-media   everything except rendered media (no browser needed)
+    python tools/build.py              build the site into dist/
     python tools/build.py --check      validate inputs only; writes nothing
     python tools/build.py --simulate-launch --out DIR
                                        build as the site will be once the token is live,
@@ -10,7 +9,7 @@
 What is deterministic: every file under site/ is copied byte for byte, and
 observer.py.txt is a byte copy of backend/shipwatch.py. A visitor can therefore
 compare any served file with the same path in the repository at the commit
-named in build.json. Rendered post media and build.json itself vary per run.
+named in build.json. build.json itself varies per run.
 """
 from __future__ import annotations
 
@@ -25,9 +24,6 @@ import shutil
 import subprocess
 import sys
 import tomllib
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import posts as post_queue  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE_FILES = ["index.html", "verify.html", "style.css", "app.js", "verify.js", "visit.js", "radar.js", "motion.js", "about.html", "about.css", "token-plan.json", "geist.woff2",
@@ -105,19 +101,18 @@ def load_inputs(simulate_launch: bool = False) -> dict:
     site = project["project"]["site"].rstrip("/")
     if site not in index:
         raise ValueError("site/index.html must reference the branded site URL in its share tags")
-    posts = post_queue.load_all(ROOT / "posts")
     if simulate_launch and status == "not_launched":
-        # Every build renders every page and post image again, so the site must
-        # also build on the day the token goes live. These values are stand-ins.
+        # The site must also build on the day the token goes live. These values
+        # are stand-ins.
         token = {"status": "launched", "launchpad": plan["launchpad"].lower(), "name": project["project"]["name"],
                  "symbol": "SAMPLE", "mint": "SampLeMintForBuiLdChecks11111111111111111111",
                  "creator_wallet": planned_wallet, "creation_signature": "5" * 88,
                  "launched_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
                  "metadata_uri": "https://example.invalid/metadata.json", "simulated": True}
-    return {"project": project, "version": version, "token": token, "posts": posts}
+    return {"project": project, "version": version, "token": token}
 
 
-def build(out: Path, render: bool, include_drafts: bool = False, simulate_launch: bool = False) -> dict:
+def build(out: Path, simulate_launch: bool = False) -> dict:
     inputs = load_inputs(simulate_launch)
     project, version = inputs["project"], inputs["version"]
     if out.exists():
@@ -157,54 +152,6 @@ def build(out: Path, render: bool, include_drafts: bool = False, simulate_launch
         write(out / "build.json", json.dumps(manifest, indent=2) + "\n")
         return manifest
 
-    # Media is captured from this very build, so the pages being captured
-    # (the verify page in particular) need a manifest before rendering starts.
-    write_manifest()
-
-    ready = [post for post in inputs["posts"] if include_drafts or not post["draft"]]
-    queue_posts = []
-    media_root = out / "posts" / "media"
-    renderer = None
-    if render and any(post["media"] for post in ready):
-        import render_media
-        renderer = render_media.Renderer(out)
-    try:
-        for post in ready:
-            entry = {"id": post["id"], "date": post["date"], "not_before": post["not_before"],
-                     "segments": [{"text": text, "media": []} for text in post["segments"]]}
-            for index, item in enumerate(post["media"], 1):
-                target_dir = media_root / post["id"]
-                target_dir.mkdir(parents=True, exist_ok=True)
-                if item["kind"] == "file":
-                    source = ROOT / "posts" / item["src"]
-                    if not source.is_file():
-                        raise ValueError(f"{post['id']}: posts/{item['src']} does not exist")
-                    target = target_dir / f"{index}{source.suffix.lower()}"
-                    shutil.copyfile(source, target)
-                elif renderer is not None:
-                    try:
-                        target = renderer.render(post, item, index, target_dir)
-                    except Exception as error:  # a slow page must not stop a release: try once more
-                        print(f"{post['id']}: media {index} did not render ({type(error).__name__}); trying once more", file=sys.stderr)
-                        target = renderer.render(post, item, index, target_dir)
-                else:
-                    continue  # --no-media: leave rendered media out of the queue entirely
-                entry["segments"][0]["media"].append({
-                    "path": target.relative_to(out).as_posix(), "sha256": sha256(target),
-                    "bytes": target.stat().st_size, "type": post_queue.FILE_TYPES[target.suffix.lower()],
-                    "alt": item["alt"],
-                })
-            if post["draft"] or len(entry["segments"][0]["media"]) != len(post["media"]):
-                entry["incomplete"] = True  # previews and media-less builds must never publish
-            queue_posts.append(entry)
-    finally:
-        if renderer is not None:
-            renderer.close()
-    (out / "posts").mkdir(exist_ok=True)
-    queue = {"schema": 1, "project": project["project"]["id"], "account": project["x"]["handle"],
-             "commit": identity["commit"], "posts": queue_posts}
-    write(out / "posts" / "queue.json", json.dumps(queue, indent=2, ensure_ascii=False) + "\n")
-
     manifest = write_manifest()
     lines = [f"{digest}  {name}" for name, digest in manifest["files"].items()]
     lines.append(f"{sha256(out / 'build.json')}  build.json")
@@ -215,21 +162,18 @@ def build(out: Path, render: bool, include_drafts: bool = False, simulate_launch
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--out", type=Path, default=ROOT / "dist")
-    parser.add_argument("--no-media", action="store_true", help="skip Playwright rendering of post media")
     parser.add_argument("--check", action="store_true", help="validate inputs and exit")
-    parser.add_argument("--include-drafts", action="store_true", help="render draft posts too, for previewing; they stay unpublishable")
     parser.add_argument("--simulate-launch", action="store_true",
                         help="build with stand-in values for a launched token, to check the site on launch day; needs --out and is never deployed")
     args = parser.parse_args()
     try:
         if args.check:
             inputs = load_inputs()
-            print(f"inputs valid: version {inputs['version']}, {len(inputs['posts'])} post(s), token {inputs['token']['status']}")
+            print(f"inputs valid: version {inputs['version']}, token {inputs['token']['status']}")
             return 0
         if args.simulate_launch and args.out.resolve() == (ROOT / "dist").resolve():
             raise ValueError("--simulate-launch needs its own --out folder, so it can never be deployed by mistake")
-        manifest = build(args.out.resolve(), render=not args.no_media, include_drafts=args.include_drafts,
-                         simulate_launch=args.simulate_launch)
+        manifest = build(args.out.resolve(), simulate_launch=args.simulate_launch)
     except (ValueError, OSError, KeyError, tomllib.TOMLDecodeError) as exc:
         print("build failed: " + str(exc), file=sys.stderr)
         return 1

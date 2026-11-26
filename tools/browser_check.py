@@ -158,7 +158,7 @@ def run(base: str) -> list[str]:
         # The public data is documented on its own page, linked from the footer.
         check(page.locator("footer a[href='./api.html']").count() == 1, "the home page footer does not link the data API page")
         page.goto(base + "/api.html")
-        check(page.locator("pre.commands").count() == 4, "the data API page does not show a command for each address")
+        check(page.locator("pre.commands").count() == 3, "the data API page does not show a command for each address")
         # The header stays on screen while scrolling, so it needs its backing on every page.
         page.evaluate("window.scrollTo(0, 600)")
         page.locator(".header.scrolled").wait_for(timeout=5_000)
