@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import http.client
 import json
@@ -293,6 +294,95 @@ class ObserverTests(unittest.TestCase):
             server.shutdown()
             server.server_close()
             thread.join()
+
+    def metadata_fixture(self, website):
+        raw = json.dumps({"name": "Fixture", "symbol": "FIX", "website": website}).encode()
+        address = "b" + base64.b32encode(b"\x01\x55\x12\x20" + hashlib.sha256(raw).digest()).decode().lower().rstrip("=")
+        return raw, address, {"name": "Fixture coin", "symbol": "FIX", "uri": "https://ipfs.io/ipfs/" + address}
+
+    def test_a_coin_without_a_listed_website_is_read_from_its_own_metadata(self):
+        raw, address, record = self.metadata_fixture("https://project.example/")
+
+        def answers(url, limit=shipwatch.MAX_BYTES, redirects=3):
+            if url.startswith("https://api.dexscreener.com/"):
+                return json.dumps([{"baseToken": {"address": MINT}, "pairAddress": "pair"}]).encode(), "application/json", url
+            if url.startswith("https://ipfs.io/"):
+                raise ValueError("Website returned HTTP 429.")
+            if url == shipwatch.IPFS_GATEWAYS[0] + address:
+                self.assertEqual(limit, shipwatch.MAX_METADATA_BYTES)
+                return raw, "application/json", url
+            raise AssertionError("unexpected request: " + url)
+
+        with patch.object(shipwatch, "fetch", side_effect=answers), patch.object(shipwatch, "mint_metadata", return_value=record):
+            project = shipwatch.linked_project(MINT)
+        self.assertEqual(project, {"mint": MINT, "symbol": "FIX", "name": "Fixture coin", "url": "https://project.example/",
+                                   "link_source": "https://ipfs.io/ipfs/" + address})
+
+    def test_a_listed_website_is_used_without_reading_the_chain(self):
+        listing = [{"baseToken": {"address": MINT, "symbol": "TEST", "name": "Listed"}, "pairAddress": "pair",
+                    "info": {"websites": [{"url": "https://listed.example/"}]}}]
+        with patch.object(shipwatch, "fetch", return_value=(json.dumps(listing).encode(), "application/json", "")), \
+                patch.object(shipwatch, "mint_metadata") as chain:
+            project = shipwatch.linked_project(MINT)
+        self.assertEqual((project["url"], project["link_source"]), ("https://listed.example/", "https://dexscreener.com/solana/pair"))
+        chain.assert_not_called()
+
+    def test_metadata_that_does_not_match_its_content_address_is_refused(self):
+        raw, address, record = self.metadata_fixture("https://project.example/")
+        forged = json.dumps({"website": "https://elsewhere.example/"}).encode()
+
+        def answers(url, limit=shipwatch.MAX_BYTES, redirects=3):
+            if url.startswith("https://api.dexscreener.com/"):
+                return b"[]", "application/json", url
+            return forged, "application/json", url
+
+        with patch.object(shipwatch, "fetch", side_effect=answers), patch.object(shipwatch, "mint_metadata", return_value=record):
+            with self.assertRaisesRegex(ValueError, "metadata file could not be read"):
+                shipwatch.linked_project(MINT)
+
+    def test_metadata_without_a_project_website_is_reported_plainly(self):
+        for website, message in (("https://x.com/someone/status/1", "social or launchpad page"), ("", "in DEX Screener or in the token's own metadata"),
+                                 ("javascript:alert(1)", "unsupported"), ("https://user@project.example/", "unsupported")):
+            raw, address, record = self.metadata_fixture(website)
+
+            def answers(url, limit=shipwatch.MAX_BYTES, redirects=3, raw=raw):
+                return (b"[]" if url.startswith("https://api.dexscreener.com/") else raw), "application/json", url
+
+            with patch.object(shipwatch, "fetch", side_effect=answers), patch.object(shipwatch, "mint_metadata", return_value=record):
+                with self.assertRaisesRegex(ValueError, message):
+                    shipwatch.linked_project(MINT)
+        with patch.object(shipwatch, "fetch", return_value=(b"[]", "application/json", "")), patch.object(shipwatch, "mint_metadata", return_value=None):
+            with self.assertRaisesRegex(ValueError, "in DEX Screener or in the token's own metadata"):
+                shipwatch.linked_project(MINT)
+
+    def test_the_on_chain_record_is_read_from_the_fixed_rpc_host(self):
+        state = {"name": "Fixture coin", "symbol": "FIX", "uri": "ipfs://" + "b" * 59, "updateAuthority": None}
+        answer = {"result": {"value": {"data": {"parsed": {"info": {"extensions": [
+            {"extension": "metadataPointer", "state": {}}, {"extension": "tokenMetadata", "state": state}]}}}}}}
+        seen = {}
+
+        class Connection:
+            def __init__(self, host, port, timeout):
+                seen["host"] = host
+
+            def request(self, method, path, body, headers):
+                seen["call"] = json.loads(body)
+
+            def getresponse(self):
+                reply = unittest.mock.Mock(status=200)
+                reply.read.return_value = json.dumps(answer).encode()
+                return reply
+
+            def close(self):
+                seen["closed"] = True
+
+        with patch.object(http.client, "HTTPSConnection", Connection):
+            record = shipwatch.mint_metadata(MINT)
+            answer["result"]["value"] = None
+            self.assertIsNone(shipwatch.mint_metadata(MINT))
+        self.assertEqual(record, {"name": "Fixture coin", "symbol": "FIX", "uri": "ipfs://" + "b" * 59})
+        self.assertEqual((seen["host"], seen["call"]["method"], seen["call"]["params"][0], seen["closed"]),
+                         ("api.mainnet-beta.solana.com", "getAccountInfo", MINT, True))
 
 
 if __name__ == "__main__":

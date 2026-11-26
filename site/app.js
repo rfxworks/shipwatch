@@ -292,7 +292,9 @@ function draw() {
     const website = link(new URL(target.url).hostname + " ↗", target.url);
     website.className = "target-site";
     const elsewhere = create("p", "target-links");
-    if (String(target.link_source || "").startsWith("https://dexscreener.com/")) elsewhere.append(link("DEX Screener ↗", target.link_source));
+    const linkSource = String(target.link_source || "");
+    if (linkSource.startsWith("https://dexscreener.com/")) elsewhere.append(link("DEX Screener ↗", linkSource));
+    else if (/^https?:\/\//.test(linkSource)) elsewhere.append(link("Token metadata ↗", linkSource));
     elsewhere.append(link("Solscan ↗", "https://solscan.io/token/" + encodeURIComponent(target.mint)));
     row.append(heading, website);
     if (target.latest_signal) {

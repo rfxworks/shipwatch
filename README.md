@@ -10,7 +10,7 @@ This repository is the complete source for everything Shipwatch serves. The site
 
 ## How it works
 
-Paste a mint address. Shipwatch looks up the website listed for that token on DEX Screener and adds it to a shared public watchlist. Every five minutes the observer fetches the homepage and up to three scripts or stylesheets on the same host, and compares them with the previous check.
+Paste a mint address. Shipwatch looks up the website listed for that token on DEX Screener, or named in the token's own on-chain metadata when DEX Screener lists none, and adds it to a shared public watchlist. Every five minutes the observer fetches the homepage and up to three scripts or stylesheets on the same host, and compares them with the previous check.
 
 | You see | What it means |
 | --- | --- |
@@ -73,7 +73,7 @@ python -m http.server --directory dist 8000
 ## Limits
 
 - The watchlist is shared and capped at 40 projects during the pilot.
-- A token's website comes from its DEX Screener listing, which the project controls.
+- A token's website comes from its DEX Screener listing or, when that names none, from the metadata its creator published with the token. The metadata route covers Token-2022 mints that carry their own metadata, which is how Pump.fun creates coins. Either source is the token's own claim: a token can name a website that has nothing to do with it.
 - Sites behind a browser challenge cannot be read and are reported as failed checks.
 - The observer's reported hash is the server's own statement. [VERIFY.md](VERIFY.md) says what that does and does not prove.
 

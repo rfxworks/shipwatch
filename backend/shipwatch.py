@@ -1,5 +1,7 @@
 """Shipwatch's public API and bounded website observer."""
 
+import base64
+import binascii
 import concurrent.futures
 from contextlib import contextmanager
 import datetime as dt
@@ -26,6 +28,15 @@ INTERVAL = 300
 MAX_TARGETS = 40
 MAX_BYTES = 600_000
 MINT = re.compile(r"[1-9A-HJ-NP-Za-km-z]{32,44}")
+# A coin that DEX Screener lists no website for is looked up in its own on-chain metadata.
+SOLANA_RPC_HOST = "api.mainnet-beta.solana.com"
+MAX_METADATA_BYTES = 20_000
+IPFS_ADDRESS = re.compile(r"(?:^ipfs://|/ipfs/)([A-Za-z0-9]{46,64})(?=$|[/?#])")
+IPFS_GATEWAYS = ("https://gateway.pinata.cloud/ipfs/", "https://ipfs.filebase.io/ipfs/")
+SOCIAL_HOSTS = ("x.com", "twitter.com", "t.me", "telegram.me", "pump.fun", "tiktok.com", "instagram.com", "youtube.com",
+                "youtu.be", "facebook.com", "discord.gg", "discord.com", "twitch.tv", "kick.com", "reddit.com", "linktr.ee")
+NO_LISTED_WEBSITE = "No project website is linked to this Solana mint in DEX Screener."
+NO_WEBSITE = "No project website is linked to this Solana mint, in DEX Screener or in the token's own metadata."
 SCAN_LOCK = threading.Lock()
 CODE_SHA = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 
@@ -307,14 +318,94 @@ def observe(url):
             "fingerprint": hashlib.sha256((title + "\n" + text).encode()).hexdigest()}
 
 
+def content_matches(cid, raw):
+    """False only when a content address states the SHA-256 of its bytes and these bytes have another."""
+    if not cid.startswith("bafkrei"):
+        return True
+    try:
+        body = cid[1:].upper()
+        decoded = base64.b32decode(body + "=" * (-len(body) % 8))
+    except (binascii.Error, ValueError):
+        return False
+    return decoded[:4] != b"\x01\x55\x12\x20" or decoded[4:] == hashlib.sha256(raw).digest()
+
+
+def metadata_document(uri):
+    """A token's metadata file. A content address is also asked of other public gateways."""
+    address = IPFS_ADDRESS.search(uri)
+    candidates = [uri] if urlsplit(uri).scheme in {"http", "https"} else []
+    if address:
+        candidates += [gateway + address.group(1) for gateway in IPFS_GATEWAYS]
+    for candidate in candidates:
+        try:
+            raw, _, _ = fetch(candidate, limit=MAX_METADATA_BYTES)
+            if address and not content_matches(address.group(1), raw):
+                continue
+            document = json.loads(raw)
+        except (ValueError, OSError, http.client.HTTPException):
+            continue
+        if isinstance(document, dict):
+            return document
+    raise ValueError("The token's metadata file could not be read.")
+
+
+def mint_metadata(mint):
+    """The name, symbol and metadata address a Token-2022 mint carries on-chain. The RPC host is fixed."""
+    body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "getAccountInfo", "params": [mint, {"encoding": "jsonParsed"}]})
+    connection = http.client.HTTPSConnection(SOLANA_RPC_HOST, 443, timeout=8)
+    try:
+        connection.request("POST", "/", body=body.encode(), headers={"Content-Type": "application/json", "User-Agent": "Shipwatch/1.0 website observer"})
+        response = connection.getresponse()
+        raw = response.read(MAX_BYTES + 1)
+        if response.status != 200 or len(raw) > MAX_BYTES:
+            raise ValueError("The token's on-chain record could not be read.")
+    finally:
+        connection.close()
+    try:
+        extensions = json.loads(raw)["result"]["value"]["data"]["parsed"]["info"]["extensions"]
+        state = next(entry["state"] for entry in extensions if entry.get("extension") == "tokenMetadata")
+        return {"name": str(state.get("name", "")), "symbol": str(state.get("symbol", "")), "uri": str(state["uri"])}
+    except (KeyError, TypeError, StopIteration, ValueError):
+        return None
+
+
+def metadata_project(mint):
+    """The website a token names in its own metadata, for a coin DEX Screener lists no website for."""
+    record = mint_metadata(mint)
+    if not record:
+        raise ValueError(NO_WEBSITE)
+    url = metadata_document(record["uri"]).get("website")
+    if not isinstance(url, str) or not url.strip():
+        raise ValueError(NO_WEBSITE)
+    url = url.strip()
+    parsed = urlsplit(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or len(url) > 300:
+        raise ValueError("The token's linked website is unsupported.")
+    host = parsed.hostname.lower()
+    if any(host == social or host.endswith("." + social) for social in SOCIAL_HOSTS):
+        raise ValueError("This token's metadata names a social or launchpad page, not a project website.")
+    address = IPFS_ADDRESS.search(record["uri"])
+    source = record["uri"] if urlsplit(record["uri"]).scheme in {"http", "https"} else "https://ipfs.io/ipfs/" + address.group(1)
+    return {"mint": mint, "symbol": record["symbol"][:30], "name": record["name"][:100], "url": url, "link_source": source[:300]}
+
+
 def linked_project(mint):
+    try:
+        return listed_project(mint)
+    except ValueError as missing:
+        if str(missing) != NO_LISTED_WEBSITE:
+            raise
+    return metadata_project(mint)
+
+
+def listed_project(mint):
     raw, _, _ = fetch(f"https://api.dexscreener.com/token-pairs/v1/solana/{quote(mint)}")
     pairs = json.loads(raw)
     if not isinstance(pairs, list):
         raise ValueError("Token lookup did not return a supported response.")
-    pairs = [pair for pair in pairs if pair.get("baseToken", {}).get("address") == mint and pair.get("info", {}).get("websites")]
+    pairs = [pair for pair in pairs if pair.get("baseToken", {}).get("address") == mint and (pair.get("info") or {}).get("websites")]
     if not pairs:
-        raise ValueError("No project website is linked to this Solana mint in DEX Screener.")
+        raise ValueError(NO_LISTED_WEBSITE)
     pairs.sort(key=lambda pair: float((pair.get("liquidity") or {}).get("usd") or 0), reverse=True)
     pair = pairs[0]
     websites = pair["info"]["websites"]
