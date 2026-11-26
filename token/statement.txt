@@ -1,0 +1,6 @@
+Shipwatch official token
+mint: JD65LAUYrixxR4MWfXB9GgveP35LvR4cNqYXqqkNpump
+creator: FZWqyszTxQ2a3EsrAMkSvBac9A94erugDh7CTFR5D8zv
+site: https://shipwatch.bwltd.kr
+repository: https://github.com/rfxworks/shipwatch
+creation transaction: 5QvDe76hEnVTwgy5kyRLZj6GQRga8MbiTqDVSczVBgyf46MM4KdV66uUQNe5CcQfGzhi8HugQMmTLYSBmTKzDQex

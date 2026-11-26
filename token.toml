@@ -1,4 +1,15 @@
-# The single source of truth for Shipwatch's token status.
+# The single source of truth for this project's token status.
 # The site's verify page and TOKEN.md are generated from this file.
-# It changes exactly once: in the commit that records the launch.
-status = "not_launched"
+status = "launched"
+launchpad = "pump.fun"
+name = "Shipwatch"
+symbol = "SHIPWATCH"
+mint = "JD65LAUYrixxR4MWfXB9GgveP35LvR4cNqYXqqkNpump"
+creator_wallet = "FZWqyszTxQ2a3EsrAMkSvBac9A94erugDh7CTFR5D8zv"
+creation_signature = "5QvDe76hEnVTwgy5kyRLZj6GQRga8MbiTqDVSczVBgyf46MM4KdV66uUQNe5CcQfGzhi8HugQMmTLYSBmTKzDQex"
+launched_at = "2026-11-26T03:36:28+00:00"
+metadata_uri = "https://ipfs.io/ipfs/bafkreiagd377acemlmjimhnkxmklyawa5ovx4b5a4nx4wrga67xnjurmxm"
+coin_url = "https://pump.fun/coin/JD65LAUYrixxR4MWfXB9GgveP35LvR4cNqYXqqkNpump"
+dev_allocation = "The creator wallet bought 3,520,919 tokens (0.35% of supply) for 0.1 SOL inside the creation transaction. That is the team's entire holding."
+sell_policy = "No sales in the first 30 days. Any later sale is announced in this repository before it happens."
+fee_recipient = "The creator wallet. Creator fees pay for hosting and development."
